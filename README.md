@@ -1,1 +1,1 @@
-# scaling-octo-guacamole
+# openai-cli
