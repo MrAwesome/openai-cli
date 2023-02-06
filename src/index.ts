@@ -2,12 +2,23 @@ import {Configuration, OpenAIApi} from "openai";
 import * as dotenv from 'dotenv';
 import util from 'util';
 import fs from 'fs';
+import {stringifyWithCircularCheck} from "./utils";
+import {parseCLI} from "./parseCLI";
+
 const start = Date.now();
 
+// TODO: IMPORTANT: don't let chat mode users use: -f, -a, -u, or 
 // TODO: use readline to allow for interactive mode
+// TODO: integrate with signal/sms bots
+// TODO: conversation mode (needs limits, clear way to indicate end of conversation)
+// TODO: commands: list_models, help/--help
+// TODO: don't let user set max_tokens to more than the model allows
+// TODO: interspersed -f and arguments/-p, for use in code generation
+// TODO: shortcuts for "write unit tests for" and "write a program that" (and maybe others)
+// TODO: in-place code replacement (e.g. "replace all calls to console.log with logger")
 
 const readFile = util.promisify(fs.readFile);
-
+const writeFile = util.promisify(fs.writeFile);
 dotenv.config();
 
 // Args:
@@ -15,7 +26,6 @@ dotenv.config();
 //  -t/--temperature: The temperature to use. Defaults to 0.6
 //  -T/--top-p: The top-p to use. Not recommended to alter both top_p and temperature at the same time. Defaults to 1.0
 //  -p/--prompt: The prompt to use. Defaults to "The following is a conversation with an AI assistant. The assistant is helpful, creative, clever, and very friendly."
-//  -n/--num-tokens: The number of tokens to generate. Defaults to 1024
 //  -s/--stop: The stop sequence to use. Defaults to newline(?)
 //  -d/--debug: Enable debug mode
 //  -h/--help: Display help
@@ -29,32 +39,8 @@ dotenv.config();
 //  -F/--frequency-penalty: The frequency penalty to use. Defaults to 0.0
 //  -b/--best-of: The number of choices to return. Defaults to 1
 //  -u/--user: The user to use. Defaults to none
-//  
+//  -M/--max-tokens: The max tokens to use *for the total completion, including the prompt and response*. Defaults to 1024
 
-class Options {
-    apiKey: string;
-    model: string = "text-davinci-003";
-    temperature: number = 0.6;
-    prompt: string = "The following is a conversation with an AI assistant. The assistant is helpful, creative, clever, and very friendly.";
-    max_tokens: number = 1024;
-    frequency_penalty?: number;
-    repeat: number = 1;
-    stop: string = "\n"; // TODO: unused
-    debug: boolean = false; // TODO: unused
-    help: boolean = false; // TODO: unused
-    version: boolean = false; // TODO: unused
-    choice: number = 0; // TODO: unused
-    logProbabilityThreshold?: number; // TODO: unused
-    echo?: boolean; // TODO: unused
-    file?: string; // TODO: unused
-    bestOf: number = 1; // TODO: unused
-    user?: string = process.env.USER; // TODO: unused
-    top_p?: number; // TODO: unused
-
-    constructor(apiKey: string) {
-        this.apiKey = apiKey;
-    }
-}
 
 interface ModelSpecificSettings {
     max_tokens: number;
@@ -73,115 +59,33 @@ const KNOWN_MODELS = {
 
 type KnownModelName = keyof typeof KNOWN_MODELS;
 
-function parseArgs(args: string[]): {options: Options} {
-    const apiKey = process.env.OPENAI_API_KEY;
-
-    if (!apiKey) {
-        console.log(`
-[ERROR] OPENAI_API_KEY environment variable not set. 
-Step 1) Go to https://beta.openai.com/account/api-keys to get an API key.
-Step 2) Open the file .env in the root of this project, and add the following line, without the angle brackets:
-OPENAI_API_KEY=<your API key>
-        `.trim());
-        process.exit(1);
-    }
-    const options = new Options(apiKey);
-    const promptPieces: string[] = [];
-
-    for (let i = 0; i < args.length; i++) {
-        const arg = args[i];
-        switch (arg) {
-            case "-d":
-            case "--debug":
-                options.debug = true;
-                break;
-            case "-m":
-            case "--model":
-                options.model = args[++i];
-                break;
-            case "-t":
-            case "--temperature":
-                options.temperature = parseFloat(args[++i]);
-                break;
-            case "-p":
-            case "--prompt":
-                options.prompt = args[++i];
-                break;
-            case "-M":
-            case "--max-tokens":
-                options.max_tokens = parseInt(args[++i]);
-                break;
-            case "-s":
-            case "--stop":
-                options.stop = args[++i];
-                break;
-            case "-h":
-            case "--help":
-                options.help = true;
-                break;
-            case "-v":
-            case "--version":
-                options.version = true;
-                break;
-            case "-c":
-            case "--choice":
-                options.choice = parseInt(args[++i]);
-                break;
-            case "-r":
-            case "--repeat":
-                options.repeat = parseInt(args[++i]);
-                break;
-            case "-F":
-            case "--frequency-penalty":
-                options.frequency_penalty = parseFloat(args[++i]);
-                break;
-            case "-l":
-            case "--log-probability-threshold":
-                options.logProbabilityThreshold = parseFloat(args[++i]);
-                break;
-            case "-e":
-            case "--echo":
-                options.echo = true;
-                break;
-            case "-a":
-            case "--api-key":
-                options.apiKey = args[++i];
-                break;
-            case "-f":
-            case "--file":
-                options.file = args[++i];
-                break;
-            case "-b":
-            case "--best-of":
-                options.bestOf = parseInt(args[++i]);
-                break;
-            case "-u":
-            case "--user":
-                options.user = args[++i];
-                break;
-            default:
-                promptPieces.push(arg);
-        }
-    }
-
-    options.prompt = promptPieces.join(" ");
-
-    return {options};
-}
-
-
+// TODO: move api key check
 
 export async function main() {
-    const {options} = parseArgs(process.argv.slice(2));
-    const {apiKey, model, temperature, prompt, max_tokens, repeat, frequency_penalty, file, debug} = options;
+    //const {options} = parseArgs(process.argv.slice(2));
 
-    const configuration = new Configuration({
-        apiKey,
-    });
+    const {scriptOpts, openaiOpts, args} = parseCLI(process.argv);
+
+    // TODO: check for -p and -f prompts here in a function (find out how to get them from the opts object)
+    if (args.length === 0 && scriptOpts.file === undefined) {
+        console.log('[ERROR] No prompt text was provided.');
+        process.exit(1);
+    }
+
+    // TODO: handle -f, etc
+    const prompt = args.join(" ");
+    
+    //console.log({opts, args});
+    const {file, debug} = scriptOpts;
+    const {api_key, model, temperature, echo, max_tokens, repeat, frequency_penalty} = openaiOpts;
+    // NOTE: Despite the API options all being snake_case, the node client uses "apiKey"
+    const configuration = new Configuration({apiKey: api_key});
     const openai = new OpenAIApi(configuration);
 
+    // TODO: handle multiple -f?
     let promptFileContents: string | undefined = undefined;
     if (file !== undefined) {
+        // TODO: just make these mutually exclusive
         // Log to stderr
         process.stderr.write(`[INFO] The -f flag was passed, so any prompt text args will be ignored.\n`);
         promptFileContents = await readFile(file, "utf8");
@@ -189,15 +93,23 @@ export async function main() {
 
     const completion = await openai.createCompletion({
         model,
-        temperature,
+        //temperature,
         prompt: promptFileContents ?? prompt,
         max_tokens,
-        frequency_penalty,
-        n: repeat,
+        echo,
+        //frequency_penalty,
+        //n: repeat,
+    }).catch((e) => {
+        console.log(e.response.data.error.message);
+        process.exit(1);
     });
 
     if (debug) {
         console.log(completion);
+        // TODO: better location, not just /tmp (can be in a throwaway dir in the project)
+        const tmpDebug = "/tmp/openai-debug.json";
+        await writeFile(tmpDebug, stringifyWithCircularCheck(completion, 2));
+        console.log(`[INFO] Debug output written to ${tmpDebug}`);
     }
 
 
