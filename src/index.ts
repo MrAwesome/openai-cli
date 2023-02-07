@@ -21,27 +21,6 @@ const readFile = util.promisify(fs.readFile);
 const writeFile = util.promisify(fs.writeFile);
 dotenv.config();
 
-// Args:
-//  -m/--model: The model to use. Defaults to text-davinci-003
-//  -t/--temperature: The temperature to use. Defaults to 0.6
-//  -T/--top-p: The top-p to use. Not recommended to alter both top_p and temperature at the same time. Defaults to 1.0
-//  -p/--prompt: The prompt to use. Defaults to "The following is a conversation with an AI assistant. The assistant is helpful, creative, clever, and very friendly."
-//  -s/--stop: The stop sequence to use. Defaults to newline(?)
-//  -d/--debug: Enable debug mode
-//  -h/--help: Display help
-//  -v/--version: Display version
-//  -c/--choice: The choice to use. Defaults to 0
-//  -r/--repeat: How many times to repeat the prompt to the model. Careful using large values, as this can quickly eat through your quota. Defaults to 1.
-//  -l/--log-probability-threshold: The log probability threshold to use. Defaults to 0.0
-//  -e/--echo: Echo the prompt to the console
-//  -a/--api-key: The API key to use. Defaults to OPENAI_API_KEY environment variable
-//  -f/--file: The file to use. Defaults to none
-//  -F/--frequency-penalty: The frequency penalty to use. Defaults to 0.0
-//  -b/--best-of: The number of choices to return. Defaults to 1
-//  -u/--user: The user to use. Defaults to none
-//  -M/--max-tokens: The max tokens to use *for the total completion, including the prompt and response*. Defaults to 1024
-
-
 interface ModelSpecificSettings {
     max_tokens: number;
 }
@@ -64,7 +43,14 @@ type KnownModelName = keyof typeof KNOWN_MODELS;
 export async function main() {
     //const {options} = parseArgs(process.argv.slice(2));
 
-    const {scriptOpts, openaiOpts, args} = parseCLI(process.argv);
+    const parseRes = parseCLI(process.argv);
+
+    if (parseRes instanceof Error) {
+        console.log(parseRes.message);
+        process.exit(1);
+    }
+
+    const {scriptOpts, openaiOpts, args} = parseRes;
 
     // TODO: check for -p and -f prompts here in a function (find out how to get them from the opts object)
     if (args.length === 0 && scriptOpts.file === undefined) {
@@ -108,16 +94,19 @@ export async function main() {
         console.log(completion);
         // TODO: better location, not just /tmp (can be in a throwaway dir in the project)
         const tmpDebug = "/tmp/openai-debug.json";
+        // TODO: more generalized error handling
         await writeFile(tmpDebug, stringifyWithCircularCheck(completion, 2));
         console.log(`[INFO] Debug output written to ${tmpDebug}`);
     }
 
 
+    // TODO: more generalized error handling
     if (completion.data.choices.length === 0) {
         console.log("No choices returned.");
         process.exit(1);
     }
 
+    // TODO: more generalized error handling
     if (completion.data.choices[0].text === "") {
         console.log("No text returned.");
         process.exit(1);
