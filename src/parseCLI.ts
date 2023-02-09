@@ -1,118 +1,145 @@
-import {z} from 'zod';
-import commander from 'commander';
-import {myParseInt, propsToSnakeCase, zodErrorToMessage} from './utils';
+import {z} from "zod";
+import commander from "commander";
+import {
+    jsonSchema,
+    myParseInt,
+    propsToSnakeCase,
+    zodErrorToMessage,
+} from "./utils";
 
-const DEFAULT_OPENAI_MODEL = 'text-davinci-003';
+import {
+    CLIHelp,
+    SubCommandConstructor,
+    ParseCLIError,
+    SubCommand,
+    SubCommandContext,
+    ScriptContext,
+} from "./types";
+import OpenAICompletionCommand from "./commands/openai-completion/OpenAICompletionCommand";
+import {DEFAULT_SUBCOMMAND_NAME, KnownSubCommandName, KNOWN_SUBCOMMAND_NAMES, KNOWN_SUBCOMMAND_NAMES_SET, SCRIPT_DEFAULTS} from "./defaultSettings";
 
 // TODO: translation layer between what commander gives us and what openai expects
 // TODO: better ensure that all of these which are explicitly required are actually required
+// TODO: alias commands (e.g. "completion" for "openai-completion", "gpt" for "openai-completion", 
+// TODO: specific alias commands ("codegen" "ts" etc) for specific prompts (figure out where to inject the prompts, or just disallow --prompt etc?)
+// TODO: add a "prompt" subcommand which just prints out the prompt for a given subcommand
+// TODO: support reading from stdin as a prompt source
+// TODO: support sub-sub-commands ("codegen ts", "codegen js", "codegen python"?)
 
-const scriptOptionsSchema = z.object({
-    file: z.string().optional(),
-    debug: z.boolean().optional(),
-    help: z.boolean().optional(), // TODO: unused
-    version: z.boolean().optional(), // TODO: unused
-    trim: z.boolean().optional(), // TODO: unused
-}).strip();
+// TODO: determine if this should be used anywhere or if these are simple enough to just trust
+const cliFlagsSchema = z
+    .object({
+        debug: z.boolean().optional(),
+        help: z.boolean().optional(),
+        version: z.boolean().optional(), // TODO: unused
+    })
+    .strip();
 
-type ScriptOptions = z.infer<typeof scriptOptionsSchema>;
+export type TopLevelCLIFlags = z.infer<typeof cliFlagsSchema>;
 
-// TODO: use refine to enforce the parameters from the openai docs
-// NOTE: these are snake_case because that's what the openai API expects
-const openAIOptionsSchema = z.object({
-    model: z.string().default(DEFAULT_OPENAI_MODEL),
-    api_key: z.string({
-        required_error: `
-[ERROR] OPENAI_API_KEY environment variable not set. 
-Step 1) Go to https://beta.openai.com/account/api-keys to get an API key.
-Step 2) Open the file .env in the root of this project, and add the following line, without the angle brackets:
-OPENAI_API_KEY=<your API key>
-        `.trim()
-    }),
-    temperature: z.number().optional(),
-    max_tokens: z.number().optional(),
-    frequency_penalty: z.number().optional(),
-    repeat: z.number().optional(),
-    echo: z.boolean().optional(),
-    stop: z.string().optional(), // TODO: unused
-    choice: z.number().optional(), // TODO: unused
-    log_probability_threshold: z.number().optional(), // TODO: unused
-    best_of: z.number().optional(), // TODO: unused
-    user: z.string().optional(), // TODO: unused
-    top_p: z.number().optional(), // TODO: unused
-    stream: z.boolean().optional(), // TODO: unused
-    presence_penalty: z.number().optional(), // TODO: unused
-    prompt: z.string().optional(), // TODO: unused
-    suffix: z.string().optional(), // TODO: unused
-}).strip();
+const subCommandConstructors: SubCommandConstructor<any>[] = [
+    OpenAICompletionCommand,
+];
+export default function parseCLI(
+    rawArgs: string[],
+    scriptContext: ScriptContext,
+): SubCommand<any> | CLIHelp | ParseCLIError {
+    const {debug, help, version} = SCRIPT_DEFAULTS;
+    const program = new commander.Command()
+        .option('-d, --debug', `Enable debug mode`, debug)
+        .option('-v, --version', `Display version`, version)
 
-type OpenAIOptions = z.infer<typeof openAIOptionsSchema>;
+    // TODO: generate unit tests for:
+    // - each subcommand's CLI parser
+        // help command
+        // --help
+        //
 
 
-type PreVerifiedOptions = Partial<ScriptOptions> & Partial<OpenAIOptions>;
+    const subCommandNameToConstructorAndParser: Record<
+        string,
+        {
+            subCommandConstructor: SubCommandConstructor<any>;
+            cliParserSubCommand: commander.Command;
+        }
+    > = Object.fromEntries(
+        subCommandConstructors.map((subCommandConstructor) => [
+            subCommandConstructor.subCommandName,
+            // NOTE: this both constructs the subcommand parser and adds it to the program
+            {
+                subCommandConstructor,
+                cliParserSubCommand:
+                    subCommandConstructor.addSubCommandTo(program),
+            },
+        ])
+    );
+    //const completionParser = makeCompletionParser(program, rawArgs);
 
-interface ParseReturn {
-    scriptOpts: ScriptOptions;
-    openaiOpts: OpenAIOptions;
-    args: string[];
-}
-export class ParseError extends Error {}
-
-export function parseCLI(rawArgs: string[]): ParseReturn | ParseError {
-    const program = new commander.Command();
-
-    // TODO: decide which of these values should be set to their defaults here and which should just be undefined and set upstream (probably all of them should be set upstream)
-    const parser = program
-        .option('-a, --api-key <api_key>', 'The API key to use. Defaults to OPENAI_API_KEY environment variable. Not recommended to set this directly using this flag, unless you do something like `-a "$(cat .openai_api_key)" to avoid having the API key in your shell history.', process.env.OPENAI_API_KEY)
-        .option('-f, --file <file>', 'The file to use. Defaults to none')
-        .option('-F, --frequency-penalty <frequency_penalty>', 'The frequency penalty to use. Defaults to 0.0', parseFloat, 0.0)
-        .option('-M, --max-tokens <max_tokens>', 'The max tokens to use *for the total completion, including the prompt and response*. Defaults to 1024', myParseInt, 1024)
-        .requiredOption('-m, --model <model>', 'The model to use. Defaults to text-davinci-003', DEFAULT_OPENAI_MODEL)
-        .option('-r, --repeat <repeat>', 'How many times to repeat the prompt to the model. Careful using large values, as this can quickly eat through your quota. Defaults to 1.', myParseInt, 1)
-        .option('-t, --temperature <temperature>', 'The temperature to use. Defaults to 0.6', parseFloat, 0.6)
-
-        // Currently <unused>:
-        .option('-b, --best-of <best_of>', 'The number of choices to generate and then choose from. Defaults to 1', myParseInt, 1)
-        .option('-c, --choice <choice>', 'The choice to use. Defaults to 0', myParseInt, 0)
-        .option('-d, --debug', 'Enable debug mode')
-        .option('-e, --echo', 'Echo the prompt back before the completion. Defaults to false', false)
-        .option('-l, --log-probability-threshold <log_probability_threshold>', 'The log probability threshold to use. Defaults to 0.0', parseFloat, 0.0)
-        // NOTE: the api actually supports an array here too, up to four elements
-        .option('-s, --stop <stop>', 'The stop sequence to use. Defaults to none')
-        // TODO: elaborate on what this is
-        .option('-T, --top-p <top_p>', 'The top-p to use. Not recommended to alter both top_p and temperature at the same time. Defaults to 1.0', parseFloat, 1.0)
-        .option('-u, --user <user>', 'The user to use. Defaults to none')
-        .option('-v, --version', 'Display version')
-        // TODO: Actually, should prompts end with <|endoftext|> or \n? I'm not sure the difference, should read up on that.
-        .option('-x, --trim', 'By default, a newline is added to the prompt sent to the model. This option removes that newline. Responses with this option will not be as likely to feel like conversations, but will be quite good at finishing a particular sentence/phrase/thought.')
-        // The backslash here is to allow the current file to be parsed by ai tooling
-        .option('-p, --prompt', 'The prompt to use. Defaults to <|\endoftext|>', '<|\endoftext|>')
-        // </unused>
-
-        .arguments('[prompt]')
-        .addHelpCommand()
-        .parse(rawArgs);
-
-
-    const camelCasePreVerifiedOpts = parser.opts();
-    const preVerifiedSnakeCaseOpts = propsToSnakeCase(camelCasePreVerifiedOpts);
-
-    console.log({camelCasePreVerifiedOpts, preVerifiedSnakeCaseOpts});
-
-    const scriptOptsOrErr = scriptOptionsSchema.safeParse(preVerifiedSnakeCaseOpts);
-    if (!scriptOptsOrErr.success) {
-        return new ParseError(zodErrorToMessage(scriptOptsOrErr.error));
+    let helpText = "";
+    // TODO: decide whether to do this, or to still manually override help/errors for local runs
+    // For local (terminal) runs, we're fine with the default behavior,
+    // but for remote runs, we want to catch CLI parsing errors and send them along the wire
+    if (scriptContext.isRemote) {
+        // TODO: register a callback here? this throws.
+        program.exitOverride();
+        //program.helpOption(false);
+        program.outputHelp = (helpContext) => {helpText = program.helpInformation();};
+        //program.option('-h, --help', `Display help`, help);
     }
-    const scriptOpts = scriptOptsOrErr.data;
 
-    const openaiOptsOrErr = openAIOptionsSchema.safeParse(preVerifiedSnakeCaseOpts);
-    if (!openaiOptsOrErr.success) {
-        return new ParseError(zodErrorToMessage(openaiOptsOrErr.error));
+    try {
+        program.parse(rawArgs);
+    } catch (err) {
+        if (helpText) {
+            return {helpText};
+        }
     }
-    const openaiOpts = openaiOptsOrErr.data;
 
-    // TODO: don't return args, return prompt as part of openaiOpts
-    // TODO: as part of that, move the file/args logic into this file
-    const args = parser.args;
-    return {scriptOpts, openaiOpts, args};
+    const opts = program.opts();
+    //NOTE: can zod parse opts here using cliFlagsSchema
+
+    const args = program.args;
+
+    if (opts.help) {
+        return {helpText: program.helpInformation()};
+    }
+
+    // If there are no args, then we're running the default subcommand
+    // If there are args, and the first arg is a known subcommand, then we're running that subcommand
+    // If there are args, and the first arg is not a known subcommand, then we're running the default subcommand
+    let subCommandName: KnownSubCommandName;
+    let subCommandArgs: string[];
+    if (args.length === 0) {
+        subCommandName = DEFAULT_SUBCOMMAND_NAME;
+        subCommandArgs = [];
+    } else {
+        const possibleSubCommandName = args[0];
+
+        if (KNOWN_SUBCOMMAND_NAMES_SET.has(possibleSubCommandName as KnownSubCommandName)) {
+            subCommandName = possibleSubCommandName as KnownSubCommandName;
+            subCommandArgs = args.slice(1);
+        } else {
+            subCommandName = DEFAULT_SUBCOMMAND_NAME;
+            subCommandArgs = args;
+        }
+    }
+
+    const {subCommandConstructor, cliParserSubCommand} = subCommandNameToConstructorAndParser[subCommandName];
+
+    const topLevelCommandOpts = program.opts();
+    const subCommandOpts = cliParserSubCommand.opts();
+
+    if (subCommandOpts.help) {
+        return {helpText: cliParserSubCommand.helpInformation()};
+    }
+
+    const subCommandContext: SubCommandContext = {
+        scriptContext,
+        topLevelCommandOpts,
+        subCommandOpts,
+        subCommandArgs,
+    };
+
+    const subCommand = new subCommandConstructor(subCommandContext);
+    return subCommand;
 }

@@ -1,0 +1,23 @@
+// tsconfig.server.json
+{
+    "include": ["src/"], // compile TS files in server directory
+    "compilerOptions": {
+        "module": "commonjs", // classic format that Node.js understands
+        "esModuleInterop": true, // allow imports of modules in ES format
+        "skipLibCheck": true, // only check types we refer to from our code
+        "forceConsistentCasingInFileNames": true, // prevents cross-OS problems
+        "resolveJsonModule": true, // enable import of JSON files
+        "lib": ["ESNext"], // use JavaScript API esnext
+        "target": "ESNext", // compile to esnext
+        "allowJs": true, // allow import of JS modules
+        // enable strict type checking
+        "strict": true,
+        "strictNullChecks": true,
+        "noUnusedLocals": false,
+        //"noUnusedLocals": true,
+        "noImplicitAny": true,
+        "moduleResolution": "node",
+        "outDir": "dist/",
+        "types": ["node"]
+    }
+}
