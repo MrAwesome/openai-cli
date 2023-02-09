@@ -134,8 +134,6 @@ export default function parseCLI(
 
     const parsedArgs = program.args;
 
-    console.log({justArgs, fixedArgs: fixedFullCommandArgs_RAW, parsedArgs, subCommandArgs: subCommandArgs_RAW});
-
     if (opts.help) {
         return {helpText: program.helpInformation()};
     }
