@@ -43,7 +43,10 @@ const subCommandConstructors: SubCommandConstructor<any>[] = [
 export default function parseCLI(
     scriptContext: ScriptContext,
 ): SubCommand<any> | CLIHelp | ParseCLIError {
-    const rawArgs = scriptContext.rawArgs;
+    // Manually remove 'node' and the script name from the args if it's a local run.
+    // Normally, commander handles this for us
+    const justArgs = scriptContext.isRemote ? scriptContext.rawArgs : scriptContext.rawArgs.slice(2);
+
     const {debug, help, version} = SCRIPT_DEFAULTS;
     const program = new commander.Command()
         .option('-d, --debug', `Enable debug mode`, debug)
@@ -75,33 +78,29 @@ export default function parseCLI(
     );
 
     let subCommandName: KnownSubCommandName;
-    let fixedArgs: string[];
-    let subCommandArgs: string[];
-
-    // Manually remove 'node' and the script name from the args if it's a local run.
-    // Normally, commander handles this for us
-    const justArgs = scriptContext.isRemote ? rawArgs : rawArgs.slice(2);
+    let fixedFullCommandArgs_RAW: string[];
+    let subCommandArgs_RAW: string[];
 
     // If there are no args, then we're running the default subcommand
-    if (rawArgs.length === 0) {
-        fixedArgs = [DEFAULT_SUBCOMMAND_NAME];
+    if (justArgs.length === 0) {
+        fixedFullCommandArgs_RAW = [DEFAULT_SUBCOMMAND_NAME];
         subCommandName = DEFAULT_SUBCOMMAND_NAME;
-        subCommandArgs = [];
+        subCommandArgs_RAW = [];
     } else {
-        const possibleSubCommandName = rawArgs[0];
+        const possibleSubCommandName = justArgs[0];
 
         if (KNOWN_SUBCOMMAND_NAMES_SET.has(possibleSubCommandName as KnownSubCommandName)) {
             // If there are args, and the first arg is a known subcommand,
             //     then we're running that subcommand
-            fixedArgs = rawArgs;
+            fixedFullCommandArgs_RAW = justArgs;
             subCommandName = possibleSubCommandName as KnownSubCommandName;
-            subCommandArgs = rawArgs.slice(1);
+            subCommandArgs_RAW = justArgs.slice(1);
         } else {
             // If there are args, and the first arg is not a known subcommand,
             //     then we're running the default subcommand
-            fixedArgs = [DEFAULT_SUBCOMMAND_NAME, ...rawArgs];
+            fixedFullCommandArgs_RAW = [DEFAULT_SUBCOMMAND_NAME, ...justArgs];
             subCommandName = DEFAULT_SUBCOMMAND_NAME;
-            subCommandArgs = rawArgs;
+            subCommandArgs_RAW = justArgs;
         }
     }
 
@@ -121,7 +120,7 @@ export default function parseCLI(
     }
 
     try {
-        program.parse(fixedArgs, parseOptions);
+        program.parse(fixedFullCommandArgs_RAW, parseOptions);
     } catch (err) {
         if (helpText) {
             return {helpText};
@@ -133,7 +132,9 @@ export default function parseCLI(
     const opts = program.opts();
     //NOTE: can zod parse opts here using cliFlagsSchema
 
-    const args = program.args;
+    const parsedArgs = program.args;
+
+    console.log({justArgs, fixedArgs: fixedFullCommandArgs_RAW, parsedArgs, subCommandArgs: subCommandArgs_RAW});
 
     if (opts.help) {
         return {helpText: program.helpInformation()};
@@ -141,8 +142,10 @@ export default function parseCLI(
 
     const {subCommandConstructor, cliParserSubCommand} = subCommandNameToConstructorAndParser[subCommandName];
 
+    cliParserSubCommand.parse(subCommandArgs_RAW, parseOptions);
     const topLevelCommandOpts = program.opts();
     const subCommandOpts = cliParserSubCommand.opts();
+    const subCommandArgs = cliParserSubCommand.args;
 
     if (subCommandOpts.help) {
         return {helpText: cliParserSubCommand.helpInformation()};

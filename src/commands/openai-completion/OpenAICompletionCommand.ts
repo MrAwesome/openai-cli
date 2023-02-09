@@ -82,8 +82,6 @@ export default class OpenAICompletionCommand extends OpenAICommand<OpenAIComplet
             };
         }
 
-        const {debug} = scriptOpts;
-        const {model, repeat, max_tokens} = verifiedOpts;
         // NOTE: Despite the API options all being snake_case, the node client uses "apiKey"
         const apiKeyOrErr = this.getAPIKey();
 
@@ -93,16 +91,20 @@ export default class OpenAICompletionCommand extends OpenAICommand<OpenAIComplet
 
         const apiKey = apiKeyOrErr;
 
+        // TODO: ensure these args are typed correctly
+        const {model, echo, repeat, max_tokens} = verifiedOpts;
+        const {debug} = scriptOpts;
+
         const configuration = new Configuration({apiKey});
         const openai = new OpenAIApi(configuration);
 
-        // TODO: ensure these args are typed correctly
         let completionResponse: AxiosResponse<CreateCompletionResponse, any>;
         try {
             completionResponse = await openai.createCompletion({
                 model,
                 prompt,
                 n: repeat,
+                echo,
                 max_tokens,
                 // TODO: don't do this. pass them explicitly, or at least make sure to translate the cli opts into openai opts and zod validate those
                 //...openaiCompletionCLIOpts,
