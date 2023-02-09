@@ -31,7 +31,8 @@ export default class CLIRunner {
     }
 
     private async run_INTERNAL(): Promise<ScriptReturn> {
-        const parseRes = parseCLI(process.argv, this.scriptContext);
+        // This is where we actually parse the CLI and display help text
+        const parseRes = parseCLI(this.scriptContext);
 
         if (parseRes instanceof ParseCLIError) {
             return {

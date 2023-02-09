@@ -65,8 +65,10 @@ export class VerifyCLIError extends KnownSafeRunError {
 export interface CLIHelp {helpText: string}
 
 export type ScriptContext = {
+    rawArgs: string[];
     isRemote: false;
 } | {
+    rawArgs: string[];
     isRemote: true;
     serverAdminContactInfo: string;
 };

@@ -32,10 +32,13 @@ dotenv.config();
 //type KnownModelName = keyof typeof KNOWN_MODELS;
 
 async function localRun() {
+    // CLI_IS_REMOTE is just a way to test remote behavior for local runs.
     const scriptContext: ScriptContext = process.env.CLI_IS_REMOTE === "true" ? {
+        rawArgs: process.argv.slice(2),
         isRemote: true,
         serverAdminContactInfo: "test-admin@test.admin",
     } : {
+        rawArgs: process.argv,
         isRemote: false,
     };
 

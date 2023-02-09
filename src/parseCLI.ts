@@ -41,9 +41,9 @@ const subCommandConstructors: SubCommandConstructor<any>[] = [
     OpenAICompletionCommand,
 ];
 export default function parseCLI(
-    rawArgs: string[],
     scriptContext: ScriptContext,
 ): SubCommand<any> | CLIHelp | ParseCLIError {
+    const rawArgs = scriptContext.rawArgs;
     const {debug, help, version} = SCRIPT_DEFAULTS;
     const program = new commander.Command()
         .option('-d, --debug', `Enable debug mode`, debug)
@@ -51,9 +51,9 @@ export default function parseCLI(
 
     // TODO: generate unit tests for:
     // - each subcommand's CLI parser
-        // help command
-        // --help
-        //
+    // help command
+    // --help
+    //
 
 
     const subCommandNameToConstructorAndParser: Record<
@@ -73,12 +73,45 @@ export default function parseCLI(
             },
         ])
     );
-    //const completionParser = makeCompletionParser(program, rawArgs);
 
-    let helpText = "";
-    // TODO: decide whether to do this, or to still manually override help/errors for local runs
+    let subCommandName: KnownSubCommandName;
+    let fixedArgs: string[];
+    let subCommandArgs: string[];
+
+    // Manually remove 'node' and the script name from the args if it's a local run.
+    // Normally, commander handles this for us
+    const justArgs = scriptContext.isRemote ? rawArgs : rawArgs.slice(2);
+
+    // If there are no args, then we're running the default subcommand
+    if (rawArgs.length === 0) {
+        fixedArgs = [DEFAULT_SUBCOMMAND_NAME];
+        subCommandName = DEFAULT_SUBCOMMAND_NAME;
+        subCommandArgs = [];
+    } else {
+        const possibleSubCommandName = rawArgs[0];
+
+        if (KNOWN_SUBCOMMAND_NAMES_SET.has(possibleSubCommandName as KnownSubCommandName)) {
+            // If there are args, and the first arg is a known subcommand,
+            //     then we're running that subcommand
+            fixedArgs = rawArgs;
+            subCommandName = possibleSubCommandName as KnownSubCommandName;
+            subCommandArgs = rawArgs.slice(1);
+        } else {
+            // If there are args, and the first arg is not a known subcommand,
+            //     then we're running the default subcommand
+            fixedArgs = [DEFAULT_SUBCOMMAND_NAME, ...rawArgs];
+            subCommandName = DEFAULT_SUBCOMMAND_NAME;
+            subCommandArgs = rawArgs;
+        }
+    }
+
+    const parseOptions: commander.ParseOptions = {
+        from: 'user',
+    };
+
     // For local (terminal) runs, we're fine with the default behavior,
     // but for remote runs, we want to catch CLI parsing errors and send them along the wire
+    let helpText = "";
     if (scriptContext.isRemote) {
         // TODO: register a callback here? this throws.
         program.exitOverride();
@@ -88,10 +121,12 @@ export default function parseCLI(
     }
 
     try {
-        program.parse(rawArgs);
+        program.parse(fixedArgs, parseOptions);
     } catch (err) {
         if (helpText) {
             return {helpText};
+        } else {
+            throw err;
         }
     }
 
@@ -102,26 +137,6 @@ export default function parseCLI(
 
     if (opts.help) {
         return {helpText: program.helpInformation()};
-    }
-
-    // If there are no args, then we're running the default subcommand
-    // If there are args, and the first arg is a known subcommand, then we're running that subcommand
-    // If there are args, and the first arg is not a known subcommand, then we're running the default subcommand
-    let subCommandName: KnownSubCommandName;
-    let subCommandArgs: string[];
-    if (args.length === 0) {
-        subCommandName = DEFAULT_SUBCOMMAND_NAME;
-        subCommandArgs = [];
-    } else {
-        const possibleSubCommandName = args[0];
-
-        if (KNOWN_SUBCOMMAND_NAMES_SET.has(possibleSubCommandName as KnownSubCommandName)) {
-            subCommandName = possibleSubCommandName as KnownSubCommandName;
-            subCommandArgs = args.slice(1);
-        } else {
-            subCommandName = DEFAULT_SUBCOMMAND_NAME;
-            subCommandArgs = args;
-        }
     }
 
     const {subCommandConstructor, cliParserSubCommand} = subCommandNameToConstructorAndParser[subCommandName];
