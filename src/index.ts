@@ -4,7 +4,10 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 
-// TODO: IMPORTANT: don't let chat mode users use: -f, -a, -u, or -d
+// TODO: IMPORTANT: don't let chat mode users use: -f, -u, or -d
+// TODO: add dall-e command
+// TODO: s/subcommand/command/
+// TODO: store defaults in overrideable config file
 // TODO: use readline to allow for interactive mode
 // TODO: integrate with signal/sms bots
 // TODO: conversation mode (needs limits, clear way to indicate end of conversation)

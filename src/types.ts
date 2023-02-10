@@ -10,6 +10,7 @@ export interface SubCommandConstructor<Opts> {
     addSubCommandTo(program: commander.Command): commander.Command;
     subCommandName: string;
     description: string;
+    showHelpOnEmptyArgsAndOptions: boolean;
 }
 export abstract class SubCommand<Opts> {
     protected abstract ctx: SubCommandContext;

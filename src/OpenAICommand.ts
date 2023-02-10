@@ -23,7 +23,7 @@ export default abstract class OpenAICommand<Opts> extends SubCommand<Opts> {
         return apiKey;
     }
 
-    protected handleOpenAIAPIError(e: any): string {
+    protected sanitizeAndFormatOpenAIAPIError(e: any): string {
         const {scriptContext} = this.ctx;
         const openaiAPIKey = this.getAPIKey();
         let message = e.isAxiosError ? e.response.data.error.message : e.message;

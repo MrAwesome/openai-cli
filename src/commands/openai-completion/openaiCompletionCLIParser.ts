@@ -3,7 +3,7 @@ import {SCRIPT_DEFAULTS, OPENAI_COMPLETION_DEFAULTS} from '../../defaultSettings
 
 import commander from "commander";
 
-export function cliParser(subCommand: commander.Command) {
+export function openaiCompletionCLIParser(subCommand: commander.Command) {
     const {
         frequency_penalty,
         prompt_flag,
@@ -52,5 +52,5 @@ export function cliParser(subCommand: commander.Command) {
         //.option('-l, --logprobs <logprobs>', `Whether to log probability thresholds`, parseFloat, logprobs)
 
 
-        .arguments('[prompt]');
+        .arguments('[prompt...]');
 }
