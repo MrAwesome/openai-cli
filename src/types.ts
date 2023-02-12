@@ -7,7 +7,7 @@ export interface SubCommandConstructor<Opts> {
     new (ctx: SubCommandContext, ...args: any[]): SubCommand<Opts>;
 
     // NOTE: This must be static.
-    addSubCommandTo(program: commander.Command): commander.Command;
+    addSubCommandTo(program: commander.Command, scriptContext: ScriptContext): commander.Command;
     subCommandName: string;
     description: string;
     showHelpOnEmptyArgsAndOptions: boolean;
@@ -34,7 +34,7 @@ export abstract class SubCommand<Opts> {
 export interface SubCommandContext {
     scriptContext: ScriptContext;
     topLevelCommandOpts: TopLevelCLIFlags;
-    subCommandOpts: commander.OptionValues;
+    unverifiedSubCommandOpts: commander.OptionValues;
     subCommandArgs: string[];
 }
 
@@ -60,6 +60,10 @@ export class APIKeyNotSetError extends KnownSafeRunError {
 // allows us to provide more helpful error messages, and is just faster.
 export class VerifyCLIError extends KnownSafeRunError {
     isVerifyError = true;
+}
+
+export class ForbiddenLocalOptionError extends KnownSafeRunError {
+    isForbiddenLocalOptionError = true;
 }
 
 // Returned for remote runs when the user uses --help/-h or the help command

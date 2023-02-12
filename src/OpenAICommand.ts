@@ -11,10 +11,6 @@ class OpenAIAPIKeyNotSetError extends APIKeyNotSetError {
 }
 
 export default abstract class OpenAICommand<Opts> extends SubCommand<Opts> {
-    constructor() {
-        super();
-    }
-
     protected getAPIKey(): string | APIKeyNotSetError {
         const apiKey = process.env.OPENAI_API_KEY;
         if (apiKey === undefined) {

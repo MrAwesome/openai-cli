@@ -18,7 +18,7 @@ import {
 import OpenAICompletionCommand from "./commands/openai-completion/OpenAICompletionCommand";
 import {DEFAULT_SUBCOMMAND_NAME, KnownSubCommandName, KNOWN_SUBCOMMAND_NAMES, KNOWN_SUBCOMMAND_NAMES_SET, SCRIPT_DEFAULTS} from "./defaultSettings";
 
-// TODO: it is probably much easier to just use .action instead of choosing subcommands manually, even if it's less type-safe in how calls happen
+// TODO: it is probably much easier to just use .action instead of choosing subcommands manually - simply set the command name with .action
 // TODO: just --help should be processed as if it were on the base command. how can you do that?
 // TODO: translation layer between what commander gives us and what openai expects
 // TODO: better ensure that all of these which are explicitly required are actually required
@@ -29,13 +29,20 @@ import {DEFAULT_SUBCOMMAND_NAME, KnownSubCommandName, KNOWN_SUBCOMMAND_NAMES, KN
 // TODO: support sub-sub-commands ("codegen ts", "codegen js", "codegen python"?)
 
 // TODO: determine if this should be used anywhere or if these are simple enough to just trust
-const cliFlagsSchema = z
+const cliFlagsREMOTESchema = z
     .object({
-        debug: z.boolean().optional(),
-        help: z.boolean().optional(),
-        version: z.boolean().optional(), // TODO: unused
+        help: z.boolean().default(false),
+        version: z.boolean().default(false), // TODO: unused
+        debug: z.literal(false).default(false),
     })
     .strip();
+
+const cliFlagsLOCALSchema = cliFlagsREMOTESchema.extend({
+    local_UNSAFE: z.literal(true),
+    debug: z.boolean(),
+});
+
+const cliFlagsSchema = cliFlagsREMOTESchema.or(cliFlagsLOCALSchema);
 
 export type TopLevelCLIFlags = z.infer<typeof cliFlagsSchema>;
 
@@ -51,8 +58,11 @@ export default function parseCLI(
 
     const {debug, help, version} = SCRIPT_DEFAULTS;
     const program = new commander.Command()
-        .option('-d, --debug', `Enable debug mode`, debug)
-        .option('-v, --version', `Display version`, version)
+        .option('-v, --version', `Display version`, version);
+
+    if (!scriptContext.isRemote) {
+        program.option('-d, --debug', `Enable debug mode`, debug)
+    }
 
     // TODO: generate unit tests for:
     // - each subcommand's CLI parser
@@ -69,7 +79,7 @@ export default function parseCLI(
 
     let helpText = "";
     for (const subCommandConstructor of subCommandConstructors) {
-        const cliParserSubCommand = subCommandConstructor.addSubCommandTo(program);
+        const cliParserSubCommand = subCommandConstructor.addSubCommandTo(program, scriptContext);
         if (scriptContext.isRemote) {
             cliParserSubCommand.exitOverride();
             cliParserSubCommand.outputHelp = (helpContext) => {helpText = program.helpInformation();};
@@ -157,17 +167,20 @@ export default function parseCLI(
     const {subCommandConstructor, cliParserSubCommand} = subCommandNameToConstructorAndParser[subCommandName];
 
     cliParserSubCommand.parse(subCommandArgs_RAW, {from: 'user'});
-    const topLevelCommandOpts = program.opts();
-    const subCommandOpts = cliParserSubCommand.opts();
+    const unverifiedTopLevelCommandOpts = program.opts();
+
+    const topLevelCommandOpts = cliFlagsSchema.parse(unverifiedTopLevelCommandOpts);
+
+    const unverifiedSubCommandOpts = cliParserSubCommand.opts();
+
+    //const subCommandOpts = subcommandParser.parse(unverifiedSubCommandOpts);
+
     const subCommandArgs = cliParserSubCommand.args;
 
     //const shouldShowHelpForEmptyCommand = subCommandConstructor.showHelpOnEmptyArgsAndOptions 
         //&& subCommandArgs_RAW.length === 0;
 
-    //console.log({shouldShowHelpForEmptyCommand});
-    //console.log({helpText: cliParserSubCommand.helpInformation()});
-
-    if (subCommandOpts.help) {
+    if (unverifiedSubCommandOpts.help) {
         //|| shouldShowHelpForEmptyCommand) {
         return {helpText: cliParserSubCommand.helpInformation()};
     }
@@ -175,7 +188,7 @@ export default function parseCLI(
     const subCommandContext: SubCommandContext = {
         scriptContext,
         topLevelCommandOpts,
-        subCommandOpts,
+        unverifiedSubCommandOpts,
         subCommandArgs,
     };
 

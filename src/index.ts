@@ -5,6 +5,10 @@ import dotenv from 'dotenv';
 dotenv.config();
 
 // TODO: IMPORTANT: don't let chat mode users use: -f, -u, or -d
+// TODO: --prompt-prefix, --prompt-suffix, --prompt-joiner (support \n -> newline, \t -> tab, etc)
+// TODO: allow for stdin (use process.stdin.isTTY)
+// TODO: support for conversation mode in readline (option for Q./A. / other prefixes)
+// TODO: aliases/helpers for codex, etc
 // TODO: add dall-e command
 // TODO: s/subcommand/command/
 // TODO: store defaults in overrideable config file
@@ -23,16 +27,16 @@ dotenv.config();
 //
 //// TODO: command to list all known models (including user's own models)
 //// TODO: command to check models all still exist / verify info
-//const KNOWN_MODELS = {
-//    "text-davinci-003": {max_tokens: 4000},
-//    "text-curie-001": {max_tokens: 2048},
-//    "text-babbage-001": {max_tokens: 2048},
-//    "text-ada-001": {max_tokens: 2048},
-//    "code-davinci-002": {max_tokens: 8000},
-//    "code-cushman-001": {max_tokens: 2048},
-//} as const;
-//
-//type KnownModelName = keyof typeof KNOWN_MODELS;
+const KNOWN_MODELS = {
+    "text-davinci-003": {max_tokens: 4000},
+    "text-curie-001": {max_tokens: 2048},
+    "text-babbage-001": {max_tokens: 2048},
+    "text-ada-001": {max_tokens: 2048},
+    "code-davinci-002": {max_tokens: 8000},
+    "code-cushman-001": {max_tokens: 2048},
+} as const;
+
+type KnownModelName = keyof typeof KNOWN_MODELS;
 
 async function localRun() {
     // CLI_IS_REMOTE is just a way to test remote behavior for local runs.

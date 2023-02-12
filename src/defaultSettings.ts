@@ -4,6 +4,8 @@ export const KNOWN_SUBCOMMAND_NAMES_SET = new Set(KNOWN_SUBCOMMAND_NAMES);
 
 export const DEFAULT_SUBCOMMAND_NAME = "openai-completion" as const;
 
+export const DEFAULT_OPENAI_REMOTE_USER = "remote_user" as const;
+
 export const SCRIPT_DEFAULTS = {
     debug: false,
     help: false,

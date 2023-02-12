@@ -1,5 +1,5 @@
 import {z} from "zod";
-import {OPENAI_COMPLETION_DEFAULTS} from "../../defaultSettings";
+import {DEFAULT_OPENAI_REMOTE_USER, OPENAI_COMPLETION_DEFAULTS} from "../../defaultSettings";
 import {jsonSchema} from "../../utils";
 
 // The zod config for the openai completion command. This is specifically
@@ -10,7 +10,7 @@ import {jsonSchema} from "../../utils";
 // (e.g. 'repeat' instead of 'n').
 //
 // NOTE: these are snake_case because that's what the openai API expects.
-export const openAICompletionCLIOptionsSchema = z.object({
+export const openAICompletionCLIOptionsREMOTESchema = z.object({
     model: z.string().default(OPENAI_COMPLETION_DEFAULTS.model),
     trim: z.boolean().optional(), // TODO: unused
     temperature: z.number().optional(),
@@ -20,19 +20,32 @@ export const openAICompletionCLIOptionsSchema = z.object({
     stop: z.string().nullable().optional(), // TODO: unused
     logit_bias: z.record(jsonSchema).nullable().optional(), // TODO: unused
     best_of: z.number().optional(), // TODO: unused
-    user: z.string().optional(), // TODO: unused
     top_p: z.number().optional(), // TODO: unused
-    stream: z.boolean().optional(), // TODO: unused
     frequency_penalty: z.number().optional(), // TODO: unused
     presence_penalty: z.number().optional(), // TODO: unused
     prompt_flag: z.string().optional(), // TODO: unused
-    prompt_file: z.string().optional(), // TODO: unused
     prompt_suffix: z.string().optional(), // TODO: unused
     suffix: z.string().nullable().optional(), // TODO: unused
+
+    // <FORCED FALSE UNSAFE>
+    // TODO: have -u be a part of scriptcontext - unix user, or arg passed in by calling library
+    user: z.literal(DEFAULT_OPENAI_REMOTE_USER), // TODO: unused
+    stream: z.literal(false).optional(), // TODO: unused
+    prompt_file: z.undefined().optional(), // TODO: unused
+    // </FORCED FALSE UNSAFE>
 
     // Unused, as they don't add anything to the functionality of a CLI:
     //logprobs: z.number().nullable().optional(), // TODO: unused
 }).strip();
+
+export const openAICompletionCLIOptionsLOCALSchema = openAICompletionCLIOptionsREMOTESchema.extend({
+    _local_UNSAFE: z.literal(true).default(true),
+    user: z.string().optional(), // TODO: unused
+    stream: z.boolean().optional(), // TODO: unused
+    prompt_file: z.string().optional(), // TODO: unused
+});
+
+export const openAICompletionCLIOptionsSchema = openAICompletionCLIOptionsLOCALSchema.or(openAICompletionCLIOptionsREMOTESchema);
 
 export type OpenAICompletionCLIOptions = z.infer<typeof openAICompletionCLIOptionsSchema>;
 
@@ -40,7 +53,7 @@ export type OpenAICompletionCLIOptions = z.infer<typeof openAICompletionCLIOptio
 // repeat
 // trim
 
-export const openAICompletionAPIOptionsSchema = openAICompletionCLIOptionsSchema
+export const openAICompletionAPIOptionsSchema = openAICompletionCLIOptionsLOCALSchema
 .extend({prompt: z.string().nonempty()})
 .transform(
     (opts, ctx) => {
