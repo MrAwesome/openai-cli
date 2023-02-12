@@ -51,6 +51,7 @@ const subCommandConstructors: SubCommandConstructor<any>[] = [
 ];
 export default function parseCLI(
     scriptContext: ScriptContext,
+    modifyProgramForTests?: (program: commander.Command) => void,
 ): SubCommand<any> | CLIHelp | ParseCLIError {
     // Manually remove 'node' and the script name from the args if it's a local run.
     // Normally, commander handles this for us
@@ -64,6 +65,10 @@ export default function parseCLI(
         program.option('-d, --debug', `Enable debug mode`, debug)
     }
 
+    if (modifyProgramForTests !== undefined) {
+        modifyProgramForTests(program);
+    }
+
     // TODO: generate unit tests for:
     // - each subcommand's CLI parser
     // help command
@@ -71,24 +76,20 @@ export default function parseCLI(
     //
 
 
-    const subCommandNameToConstructorAndParser: Record<string,
-        {
-            subCommandConstructor: SubCommandConstructor<any>;
-            cliParserSubCommand: commander.Command;
-        }> = {};
+    const subCommandNameToConstructorAndParser: Record<string, SubCommandConstructor<any>> = {};
+
+    let targetSubCommand: {cmdArgs: string[], cmdOpts: commander.OptionValues, cmd: commander.Command} | undefined;
 
     let helpText = "";
     for (const subCommandConstructor of subCommandConstructors) {
         const cliParserSubCommand = subCommandConstructor.addSubCommandTo(program, scriptContext);
+        cliParserSubCommand.action((cmdArgs, cmdOpts, cmd) => {targetSubCommand = {cmdArgs, cmdOpts, cmd};});
         if (scriptContext.isRemote) {
             cliParserSubCommand.exitOverride();
             cliParserSubCommand.outputHelp = (helpContext) => {helpText = program.helpInformation();};
         }
 
-        subCommandNameToConstructorAndParser[subCommandConstructor.subCommandName] = {
-            subCommandConstructor,
-            cliParserSubCommand,
-        };
+        subCommandNameToConstructorAndParser[subCommandConstructor.subCommandName] = subCommandConstructor;
     }
 //
 //    let subCommandName: KnownSubCommandName;
@@ -151,39 +152,50 @@ export default function parseCLI(
         }
     }
 
-    const opts = program.opts();
+    const topLevelOpts = program.opts();
     //NOTE: can zod parse opts here using cliFlagsSchema
 
-    const parsedArgs = program.args;
+    const topLevelArgs = program.args;
     
 
-    if (opts.help) {
+    if (topLevelOpts.help) {
         return {helpText: program.helpInformation()};
     }
 
-    const [possibleSubCommandName, ...subCommandArgs_RAW] = parsedArgs;
-    const subCommandName = possibleSubCommandName as KnownSubCommandName;
+    //const [possibleSubCommandName, ...subCommandArgs_RAW] = topLevelArgs;
+    //const subCommandName = possibleSubCommandName as KnownSubCommandName;
 
-    const {subCommandConstructor, cliParserSubCommand} = subCommandNameToConstructorAndParser[subCommandName];
+    //const {subCommandConstructor, cliParserSubCommand} = subCommandNameToConstructorAndParser[subCommandName];
 
-    cliParserSubCommand.parse(subCommandArgs_RAW, {from: 'user'});
+    //cliParserSubCommand.parse(subCommandArgs_RAW, {from: 'user'});
+
     const unverifiedTopLevelCommandOpts = program.opts();
-
     const topLevelCommandOpts = cliFlagsSchema.parse(unverifiedTopLevelCommandOpts);
 
-    const unverifiedSubCommandOpts = cliParserSubCommand.opts();
+    //const unverifiedSubCommandOpts = cliParserSubCommand.opts();
 
     //const subCommandOpts = subcommandParser.parse(unverifiedSubCommandOpts);
 
-    const subCommandArgs = cliParserSubCommand.args;
+    //const subCommandArgs = cliParserSubCommand.args;
 
     //const shouldShowHelpForEmptyCommand = subCommandConstructor.showHelpOnEmptyArgsAndOptions 
         //&& subCommandArgs_RAW.length === 0;
 
+
+    if (!targetSubCommand) {
+        return new ParseCLIError(`No subcommand specified`);
+    }
+
+    const unverifiedSubCommandOpts = targetSubCommand.cmdOpts;
+    const subCommandArgs = targetSubCommand.cmdArgs;
+    const cliParserSubCommand = targetSubCommand.cmd;
+    
     if (unverifiedSubCommandOpts.help) {
         //|| shouldShowHelpForEmptyCommand) {
         return {helpText: cliParserSubCommand.helpInformation()};
     }
+    
+    const subCommandConstructor = subCommandNameToConstructorAndParser[cliParserSubCommand.name()];
 
     const subCommandContext: SubCommandContext = {
         scriptContext,
