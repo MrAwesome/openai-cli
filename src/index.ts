@@ -4,12 +4,15 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 
-// TODO: IMPORTANT: don't let chat mode users use: -f, -u, or -d
+// TODO: important: fix file reading (didn't seem to throw an error when given an invalid file) - it seems like file reading is entirely broken?
+// TODO: automatically set max_tokens to near the max by estimating token length num and subtracting from known model max (is there a library for estimation?)
+// TODO: IMPORTANT: don't let remote users use: -f, -u, or -d
 // TODO: --prompt-prefix, --prompt-suffix, --prompt-joiner (support \n -> newline, \t -> tab, etc)
+// TODO: make --n canonical, make --repeat an alias
 // TODO: allow for stdin (use process.stdin.isTTY)
 // TODO: support for conversation mode in readline (option for Q./A. / other prefixes)
 // TODO: aliases/helpers for codex, etc
-// TODO: add dall-e command
+// TODO: add dall-e command - handle --n
 // TODO: s/subcommand/command/
 // TODO: store defaults in overrideable config file
 // TODO: use readline to allow for interactive mode
@@ -21,10 +24,12 @@ dotenv.config();
 // TODO: shortcuts for "write unit tests for" and "write a program that" (and maybe others)
 // TODO: in-place code replacement (e.g. "replace all calls to console.log with logger")
 
-//interface ModelSpecificSettings {
-//    max_tokens: number;
-//}
-//
+// Projects:
+// [] Conversation mode
+//   [] Indicate conversations should be stored via a flag/arg?
+//   [] Live convo mode in the terminal/repl
+//   [] Live convo mode for chat?
+
 //// TODO: command to list all known models (including user's own models)
 //// TODO: command to check models all still exist / verify info
 const KNOWN_MODELS = {

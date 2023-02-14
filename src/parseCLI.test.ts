@@ -14,13 +14,7 @@ interface ErrorConstructor {
     new(...args: any[]): Error;
 }
 
-class FakeSubCommand extends OpenAICompletionCommand {
-    constructor(public ctx: SubCommandContext) {
-        super(ctx);
-    }
-}
-
-type FSC = FakeSubCommand;
+type CTX = SubCommandContext;
 
 // Commander looooves to make a lot of noise to stderr in local runs, so shut it up
 function shutUpCommander(_testName: string) {
@@ -91,14 +85,14 @@ const usageChecker = vd((res) => {
 })
 
 const testYester = vd((res) => {
-    expect(res).toBeInstanceOf(SubCommand);
-    const cmd = res as FSC;
+    expect((res as CTX).subCommandConstructor).toBe(OpenAICompletionCommand);
+    const ctx = res as CTX;
 
     // Test args are passed through
-    expect(cmd.ctx.subCommandArgs).toStrictEqual(["YESTER"]);
+    expect(ctx.subCommandArgs).toStrictEqual(["YESTER"]);
 
     // Test that at least one default setting is being passed through
-    expect(cmd.ctx.unverifiedSubCommandOpts.model).toBe(OPENAI_COMPLETION_DEFAULTS.model);
+    expect(ctx.unverifiedSubCommandOpts.model).toBe(OPENAI_COMPLETION_DEFAULTS.model);
 });
 
 // TODO: track down why 'error: unknown command' is still showing up in logs
@@ -112,20 +106,20 @@ describe("testCLIParsing", () => {
         [...sc("local", ["--LKjLKJDSF"]), 1],
         [...sc("local", ["LKjLKJDSF"]), 1],
         [...sc("local", ["node", "filename.js", "LKjLKJDSF"]), 1],
-        [...sc("local", ["node", "filename.js", "openai-completion", "YESTER", "-m", "FAKE_MODEL"]), vd((res) => {expect((res as FSC).ctx.unverifiedSubCommandOpts.model).toBe("FAKE_MODEL")})],
-        [...sc("local", ["node", "filename.js", "openai-completion", "-m", "FAKE_MODEL", "YESTER"]), vd((res) => {expect((res as FSC).ctx.unverifiedSubCommandOpts.model).toBe("FAKE_MODEL")})],
+        [...sc("local", ["node", "filename.js", "openai-completion", "YESTER", "-m", "FAKE_MODEL"]), vd((res) => {expect((res as CTX).unverifiedSubCommandOpts.model).toBe("FAKE_MODEL")})],
+        [...sc("local", ["node", "filename.js", "openai-completion", "-m", "FAKE_MODEL", "YESTER"]), vd((res) => {expect((res as CTX).unverifiedSubCommandOpts.model).toBe("FAKE_MODEL")})],
         [...sc("local", ["node", "fillasjflkasjfd.js", "openai-completion", "fly me to the moon"]), vd((res) => {
-            expect((res as FSC).ctx.subCommandArgs).toStrictEqual(["fly me to the moon"]);
-            expect((res as FSC).ctx.scriptContext.isRemote).toStrictEqual(false);
+            expect((res as CTX).subCommandArgs).toStrictEqual(["fly me to the moon"]);
+            expect((res as CTX).scriptContext.isRemote).toStrictEqual(false);
         })],
         [...sc("local", ["node", "filename.js", "openai-completion", "--prompt-file", "anything.txt"]),
         vd((res) => {
-            expect((res as FSC).ctx.unverifiedSubCommandOpts.promptFile).toBe("anything.txt");
+            expect((res as CTX).unverifiedSubCommandOpts.promptFile).toBe("anything.txt");
         })
         ],
         [...sc("local", ["node", "filename.js", "openai-completion", "-f", "anything.json"]),
         vd((res) => {
-            expect((res as FSC).ctx.unverifiedSubCommandOpts.promptFile).toBe("anything.json");
+            expect((res as CTX).unverifiedSubCommandOpts.promptFile).toBe("anything.json");
         })
         ],
 
@@ -136,11 +130,11 @@ describe("testCLIParsing", () => {
         [...sc("remote", ["node", "filename.js", "--FAKEJFKSLDJF"]), {commanderErrorCode: "commander.unknownCommand"}],
         [...sc("remote", ["node", "filename.js", "openai-completion", "YESS"]), {commanderErrorCode: "commander.unknownCommand"}],
         [...sc("remote", ["openai-completion", "YESTER"]), testYester],
-        [...sc("remote", ["openai-completion", "-m", "FAKE_MODEL", "YESTER"]), vd((res) => {expect((res as FSC).ctx.unverifiedSubCommandOpts.model).toBe("FAKE_MODEL")})],
-        [...sc("remote", ["openai-completion", "YESTER", "-m", "FAKE_MODEL"]), vd((res) => {expect((res as FSC).ctx.unverifiedSubCommandOpts.model).toBe("FAKE_MODEL")})],
+        [...sc("remote", ["openai-completion", "-m", "FAKE_MODEL", "YESTER"]), vd((res) => {expect((res as CTX).unverifiedSubCommandOpts.model).toBe("FAKE_MODEL")})],
+        [...sc("remote", ["openai-completion", "YESTER", "-m", "FAKE_MODEL"]), vd((res) => {expect((res as CTX).unverifiedSubCommandOpts.model).toBe("FAKE_MODEL")})],
         [...sc("remote", ["openai-completion", "fly me to the moon"]), vd((res) => {
-            expect((res as FSC).ctx.subCommandArgs).toStrictEqual(["fly me to the moon"]);
-            expect((res as FSC).ctx.scriptContext.isRemote).toStrictEqual(true);
+            expect((res as CTX).subCommandArgs).toStrictEqual(["fly me to the moon"]);
+            expect((res as CTX).scriptContext.isRemote).toStrictEqual(true);
         })],
         [...sc("remote", ["--DOOPDOOPDOO", "YUH"]), {commanderErrorCode: "commander.unknownOption"}],
         [...sc("remote", ["DOOPDOOPDOO", "YUH"]), {commanderErrorCode: "commander.unknownCommand"}],

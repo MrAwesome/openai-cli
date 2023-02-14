@@ -713,6 +713,11 @@
   resolved "https://registry.yarnpkg.com/@types/stack-utils/-/stack-utils-2.0.1.tgz#20f18294f797f2209b5f65c8e3b5c8e8261d127c"
   integrity sha512-Hl219/BT5fLAaz6NDkSuhzasy49dwQS/DSdu4MdggFB8zcXv7vflBI3xp7FEmkmdDkBUI2bPUNeMttp2knYdxw==
 
+"@types/wtfnode@^0.7.0":
+  version "0.7.0"
+  resolved "https://registry.yarnpkg.com/@types/wtfnode/-/wtfnode-0.7.0.tgz#e5d9c675bccc2f786830ffa40ffe8865f92057d9"
+  integrity sha512-kdBHgE9+M1Os7UqWZtiLhKye5reFl8cPBYyCsP2fatwZRz7F7GdIxIHZ20Kkc0hYBfbXE+lzPOTUU1I0qgjtHA==
+
 "@types/yargs-parser@*":
   version "21.0.0"
   resolved "https://registry.yarnpkg.com/@types/yargs-parser/-/yargs-parser-21.0.0.tgz#0c60e537fa790f5f9472ed2776c2b71ec117351b"
@@ -2397,6 +2402,11 @@ write-file-atomic@^4.0.2:
   dependencies:
     imurmurhash "^0.1.4"
     signal-exit "^3.0.7"
+
+wtfnode@^0.9.1:
+  version "0.9.1"
+  resolved "https://registry.yarnpkg.com/wtfnode/-/wtfnode-0.9.1.tgz#c385679d2df6fb4d64d734eeeaab767fcee3e0d3"
+  integrity sha512-Ip6C2KeQPl/F3aP1EfOnPoQk14Udd9lffpoqWDNH3Xt78svxPbv53ngtmtfI0q2Te3oTq79XKTnRNXVIn/GsPA==
 
 y18n@^5.0.5:
   version "5.0.8"

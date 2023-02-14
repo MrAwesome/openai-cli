@@ -1,5 +1,6 @@
 import parseCLI from "./parseCLI";
-import {ScriptReturn, ScriptContext, VerifyCLIError, KnownSafeRunError, ParseCLIError} from "./types";
+import {ScriptReturn, ScriptContext, VerifyCLIError, KnownSafeRunError, ParseCLIError, SubCommandContext} from "./types";
+import {getFileContents} from "./utils";
 
 export default class CLIRunner {
     constructor(private scriptContext: ScriptContext) {
@@ -50,7 +51,11 @@ export default class CLIRunner {
             };
         }
 
-        const subCommand = parseRes;
+        const subCommandContext = parseRes;
+        const {subCommandConstructor} = subCommandContext;
+
+        const subCommand = new subCommandConstructor(subCommandContext);
+
         const ret = await subCommand.run();
 
         if (ret instanceof KnownSafeRunError) {

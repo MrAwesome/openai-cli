@@ -1,3 +1,5 @@
+// Path: validation.ts
+//
 import {z} from "zod";
 import {DEFAULT_OPENAI_REMOTE_USER, OPENAI_COMPLETION_DEFAULTS} from "../../defaultSettings";
 import {jsonSchema} from "../../utils";
@@ -25,6 +27,7 @@ export const openAICompletionCLIOptionsREMOTESchema = z.object({
     presence_penalty: z.number().optional(), // TODO: unused
     prompt_flag: z.string().optional(), // TODO: unused
     prompt_suffix: z.string().optional(), // TODO: unused
+    prompt_prefix: z.string().optional(), // TODO: unused
     suffix: z.string().nullable().optional(), // TODO: unused
 
     // <FORCED FALSE UNSAFE>

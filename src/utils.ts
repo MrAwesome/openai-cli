@@ -5,6 +5,7 @@ import fs from 'fs';
 import path from 'path';
 const writeFile = util.promisify(fs.writeFile);
 const mkdir = util.promisify(fs.mkdir);
+const readFile = util.promisify(fs.readFile);
 
 export function noop(...args: any[]) {}
 
@@ -68,3 +69,13 @@ export async function debugData(label: string, data: any) {
     console.log(`[DEBUG] Debug output written to ${filename}`);
 }
 // </debugging>
+
+export async function getFileContents(relativeFilename: string): Promise<string> {
+    let prefix = "";
+    if (path.parse(relativeFilename).root === "") {
+        prefix = process.env.INIT_CWD || process.cwd();
+    }
+    const filename = path.join(prefix, relativeFilename);
+    return await readFile(filename, "utf8");
+}
+

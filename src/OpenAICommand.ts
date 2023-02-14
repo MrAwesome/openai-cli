@@ -19,10 +19,11 @@ export default abstract class OpenAICommand<Opts> extends SubCommand<Opts> {
         return apiKey;
     }
 
-    protected sanitizeAndFormatOpenAIAPIError(e: any): string {
+    protected sanitizeAndFormatOpenAIAPIError(e: any, openaiAPIKey: string): string {
         const {scriptContext} = this.ctx;
-        const openaiAPIKey = this.getAPIKey();
-        let message = e.isAxiosError ? e.response.data.error.message : e.message;
+
+        let message: string;
+        message = e?.isAxiosError ? e.response.data.error.message : e?.message;
         if (scriptContext.isRemote && openaiAPIKey !== undefined) {
             if (message.includes(openaiAPIKey) || message.toLowerCase().includes("api key")) {
                 console.error("[ERROR] API key was included in error message! Censoring. Error:", e.message, e);

@@ -32,6 +32,8 @@ export const OPENAI_COMPLETION_DEFAULTS = {
     // The backslash here is to allow the current file to be parsed by ai tooling
     prompt_flag: undefined,
     prompt_file: undefined,
+    prompt_suffix: undefined,
+    prompt_prefix: undefined,
     // Unused, as they don't add anything to the functionality of a CLI:
     //logprobs: 0.0,
 } as const;

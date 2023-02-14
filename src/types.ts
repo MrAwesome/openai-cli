@@ -36,6 +36,7 @@ export interface SubCommandContext {
     topLevelCommandOpts: TopLevelCLIFlags;
     unverifiedSubCommandOpts: commander.OptionValues;
     subCommandArgs: string[];
+    subCommandConstructor: SubCommandConstructor<any>;
 }
 
 export class KnownSafeRunError {
