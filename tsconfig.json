@@ -13,8 +13,7 @@
         // enable strict type checking
         "strict": true,
         "strictNullChecks": true,
-        "noUnusedLocals": false,
-        //"noUnusedLocals": true,
+        "noUnusedLocals": true,
         "noImplicitAny": true,
         "moduleResolution": "node",
         "outDir": "dist/",

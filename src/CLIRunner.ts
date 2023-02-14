@@ -1,6 +1,10 @@
 import parseCLI from "./parseCLI";
-import {ScriptReturn, ScriptContext, VerifyCLIError, KnownSafeRunError, ParseCLIError, SubCommandContext} from "./types";
-import {getFileContents} from "./utils";
+import {
+    ScriptReturn,
+    ScriptContext,
+    KnownSafeRunError,
+    ParseCLIError,
+} from "./types";
 
 export default class CLIRunner {
     constructor(private scriptContext: ScriptContext) {
@@ -14,7 +18,9 @@ export default class CLIRunner {
             return await this.run_INTERNAL();
         } catch (e: any) {
             if (isRemote) {
-                console.log(`[ERROR] Unknown error in remote run: ${e.message}`);
+                console.log(
+                    `[ERROR] Unknown error in remote run: ${e.message}`
+                );
                 return {
                     status: "failure_safe",
                     exitCode: 1,

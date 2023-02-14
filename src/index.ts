@@ -32,16 +32,14 @@ dotenv.config();
 
 //// TODO: command to list all known models (including user's own models)
 //// TODO: command to check models all still exist / verify info
-const KNOWN_MODELS = {
-    "text-davinci-003": {max_tokens: 4000},
-    "text-curie-001": {max_tokens: 2048},
-    "text-babbage-001": {max_tokens: 2048},
-    "text-ada-001": {max_tokens: 2048},
-    "code-davinci-002": {max_tokens: 8000},
-    "code-cushman-001": {max_tokens: 2048},
-} as const;
-
-type KnownModelName = keyof typeof KNOWN_MODELS;
+//const KNOWN_MODELS = {
+//    "text-davinci-003": {max_tokens: 4000},
+//    "text-curie-001": {max_tokens: 2048},
+//    "text-babbage-001": {max_tokens: 2048},
+//    "text-ada-001": {max_tokens: 2048},
+//    "code-davinci-002": {max_tokens: 8000},
+//    "code-cushman-001": {max_tokens: 2048},
+//} as const;
 
 async function localRun() {
     // CLI_IS_REMOTE is just a way to test remote behavior for local runs.

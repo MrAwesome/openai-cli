@@ -1,7 +1,4 @@
-import util from "util";
-import fs from "fs";
 import {OpenAICompletionCLIOptions} from "./validation";
-import path from "path";
 
 // TODO: allow for multiple -p, multiple -f
 // TODO: make ordering explicit in help text: -p, args, -f, --prompt-suffix

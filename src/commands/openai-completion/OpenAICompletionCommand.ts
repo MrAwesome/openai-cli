@@ -1,8 +1,6 @@
 import {
-    SubCommand,
     ScriptReturn,
     SubCommandContext,
-    ParseCLIError,
     VerifyCLIError,
     KnownSafeRunError,
     APIKeyNotSetError,
@@ -11,7 +9,6 @@ import {
 import {AxiosResponse} from "axios";
 import {Configuration, CreateCompletionResponse, OpenAIApi} from "openai";
 import {debugData, getFileContents} from "../../utils";
-import {OPENAI_API_KEY_NOT_SET_ERROR} from "../../defaultSettings";
 import {propsToSnakeCase, zodErrorToMessage} from "../../utils";
 import {
     OpenAICompletionCLIOptions,
@@ -21,7 +18,6 @@ import concatenatePromptPieces from "./concatenatePromptPieces";
 import OpenAICommand from "../../OpenAICommand";
 import {myParseInt} from "../../utils";
 import {
-    SCRIPT_DEFAULTS,
     OPENAI_COMPLETION_DEFAULTS,
 } from "../../defaultSettings";
 
@@ -58,7 +54,6 @@ export default class OpenAICompletionCommand extends OpenAICommand<OpenAIComplet
     verifyCLI(): OpenAICompletionCLIOptions | VerifyCLIError {
         const {
             unverifiedSubCommandOpts: camelCasePreVerifiedOpts,
-            subCommandArgs,
         } = this.ctx;
         const preVerifiedSnakeCaseOpts = propsToSnakeCase(
             camelCasePreVerifiedOpts
@@ -87,7 +82,6 @@ export default class OpenAICompletionCommand extends OpenAICommand<OpenAIComplet
         // check if we're in CLI mode, and if so, set scriptContext.isCLI
         const {
             topLevelCommandOpts,
-            unverifiedSubCommandOpts,
             subCommandArgs: args,
         } = this.ctx;
 

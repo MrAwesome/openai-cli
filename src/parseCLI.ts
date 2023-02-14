@@ -1,29 +1,18 @@
 import {z} from "zod";
 import commander from "commander";
-import {
-    getFileContents,
-    jsonSchema,
-    myParseInt,
-    propsToSnakeCase,
-    zodErrorToMessage,
-} from "./utils";
 
 import {
     CLIHelp,
     SubCommandConstructor,
     ParseCLIError,
-    SubCommand,
     SubCommandContext,
     ScriptContext,
 } from "./types";
 import OpenAICompletionCommand from "./commands/openai-completion/OpenAICompletionCommand";
 import {
-    DEFAULT_SUBCOMMAND_NAME,
-    KnownSubCommandName,
-    KNOWN_SUBCOMMAND_NAMES,
-    KNOWN_SUBCOMMAND_NAMES_SET,
     SCRIPT_DEFAULTS,
 } from "./defaultSettings";
+import {zodErrorToMessage} from "./utils";
 
 // TODO: it is probably much easier to just use .action instead of choosing subcommands manually - simply set the command name with .action
 // TODO: just --help should be processed as if it were on the base command. how can you do that?
@@ -64,7 +53,7 @@ export default function parseCLI(
     // Normally, commander handles this for us
     //const prefixRemovedArgs = scriptContext.isRemote ? scriptContext.rawArgs : scriptContext.rawArgs.slice(2);
 
-    const {debug, help, version} = SCRIPT_DEFAULTS;
+    const {debug, version} = SCRIPT_DEFAULTS;
     const program = new commander.Command().option(
         "-v, --version",
         `Display version`,
@@ -92,10 +81,10 @@ export default function parseCLI(
 
     let subCmdCommanderContext:
         | {
-              subCmdArgs: string[];
-              subCmdDefaultOpts: commander.OptionValues;
-              subCmd: commander.Command;
-          }
+            subCmdArgs: string[];
+            subCmdDefaultOpts: commander.OptionValues;
+            subCmd: commander.Command;
+        }
         | undefined;
 
     let helpText = "";
@@ -146,20 +135,26 @@ export default function parseCLI(
             throw err;
         }
     }
-
     const topLevelOpts = program.opts();
-    //NOTE: can zod parse opts here using cliFlagsSchema
-
-    const topLevelArgs = program.args;
 
     if (topLevelOpts.help) {
         return {helpText: program.helpInformation()};
     }
 
+    // zod parse the options:
+    // TODO: use safeparse and make sure that the error is returned cleanly and formatted well
     const unverifiedTopLevelCommandOpts = program.opts();
-    const topLevelCommandOpts = cliFlagsSchema.parse(
+    const topLevelCommandOptsOrErr = cliFlagsSchema.safeParse(
         unverifiedTopLevelCommandOpts
     );
+
+    if (!topLevelCommandOptsOrErr.success) {
+        const zodErrorMessage = zodErrorToMessage(topLevelCommandOptsOrErr.error);
+        return new ParseCLIError(
+            `Error parsing top-level CLI options: ${zodErrorMessage}`
+        );
+    }
+    const topLevelCommandOpts = topLevelCommandOptsOrErr.data;
 
     if (!subCmdCommanderContext) {
         return new ParseCLIError(`No subcommand specified`);
