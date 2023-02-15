@@ -17,8 +17,12 @@ dotenv.config();
     const results = response.data.results;
 
     for (const result of results) {
-        console.log(result.flagged);
-        console.log(result.categories);
-        console.log(result.category_scores);
+        for (const key in result.category_scores) {
+            const scoreKey = key as keyof typeof result.category_scores;
+            const isKey =  key as keyof typeof result.categories;
+            const score = result.category_scores[scoreKey];
+            const isCat = result.categories[isKey];
+            console.log(`${scoreKey}: ${score.toFixed(2)} ${isCat ? "!!! " : ""}`);
+        }
     }
 })();
