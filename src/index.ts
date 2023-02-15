@@ -4,9 +4,7 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 
-// TODO: important: fix file reading (didn't seem to throw an error when given an invalid file) - it seems like file reading is entirely broken?
 // TODO: automatically set max_tokens to near the max by estimating token length num and subtracting from known model max (is there a library for estimation?)
-// TODO: IMPORTANT: don't let remote users use: -f, -u, or -d
 // TODO: --prompt-prefix, --prompt-suffix, --prompt-joiner (support \n -> newline, \t -> tab, etc)
 // TODO: make --n canonical, make --repeat an alias
 // TODO: allow for stdin (use process.stdin.isTTY)

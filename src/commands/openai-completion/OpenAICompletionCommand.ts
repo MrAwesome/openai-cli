@@ -192,6 +192,7 @@ function openaiCompletionCLIParser(
         prompt_file,
         prompt_suffix,
         prompt_prefix,
+        prompt_joiner,
         trim,
     } = OPENAI_COMPLETION_DEFAULTS;
 
@@ -273,6 +274,11 @@ function openaiCompletionCLIParser(
             "--prompt-prefix <prompt_prefix>",
             `The prefix to add to the prompt.`,
             prompt_prefix
+        )
+        .option(
+            "--prompt-joiner <prompt_joiner>",
+            `The string which joins the various pieces of the prompt (prefix, suffix, file, etc).`,
+            prompt_joiner
         )
 
         // Unused, as they don't add anything to the functionality of a CLI:

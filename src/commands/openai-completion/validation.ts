@@ -25,6 +25,7 @@ export const openAICompletionCLIOptionsREMOTESchema = z.object({
     top_p: z.number().optional(), // TODO: unused
     frequency_penalty: z.number().optional(), // TODO: unused
     presence_penalty: z.number().optional(), // TODO: unused
+    prompt_joiner: z.string().optional(), // TODO: unused
     prompt_flag: z.string().optional(), // TODO: unused
     prompt_suffix: z.string().optional(), // TODO: unused
     prompt_prefix: z.string().optional(), // TODO: unused
@@ -46,7 +47,7 @@ export const openAICompletionCLIOptionsLOCALSchema = openAICompletionCLIOptionsR
     user: z.string().optional(), // TODO: unused
     stream: z.boolean().optional(), // TODO: unused
     prompt_file: z.string().optional(), // TODO: unused
-});
+}).strip();
 
 export const openAICompletionCLIOptionsSchema = openAICompletionCLIOptionsLOCALSchema.or(openAICompletionCLIOptionsREMOTESchema);
 

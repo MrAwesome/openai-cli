@@ -34,6 +34,7 @@ export const OPENAI_COMPLETION_DEFAULTS = {
     prompt_file: undefined,
     prompt_suffix: undefined,
     prompt_prefix: undefined,
+    prompt_joiner: "\n",
     // Unused, as they don't add anything to the functionality of a CLI:
     //logprobs: 0.0,
 } as const;

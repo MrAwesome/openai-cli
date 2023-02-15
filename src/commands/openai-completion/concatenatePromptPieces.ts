@@ -7,17 +7,27 @@ import {OpenAICompletionCLIOptions} from "./validation";
 export default function concatenatePromptPieces(
     args: string[],
     openaiCompletionCLIOpts: OpenAICompletionCLIOptions,
-    promptFileContents: string | undefined,
+    promptFileContents: string | undefined
 ): string {
-    let {prompt_file, prompt_flag, prompt_prefix, prompt_suffix} = openaiCompletionCLIOpts;
+    let {
+        prompt_file,
+        prompt_flag,
+        prompt_prefix,
+        prompt_suffix,
+        prompt_joiner,
+    } = openaiCompletionCLIOpts;
     const promptFromArgs = args.join(" ");
 
+    const promptJoiner = prompt_joiner;
+
     // NOTE: If you add more sources of prompt text, be sure to handle both empty strings and undefined.
-    // TODO: make this respect -x trim() or --prompt-joiner?
-    const promptPrefix = prompt_prefix ? prompt_prefix + "\n" : "";
-    const promptFromFlag = prompt_flag ? prompt_flag + "\n" : "";
-    const promptFromFile = prompt_file ? promptFileContents + "\n" : "";
-    const promptSuffix = prompt_suffix ? prompt_suffix + "\n" : "";
+    // TODO: make this respect -x trim()
+    const promptPrefix = prompt_prefix ? prompt_prefix + promptJoiner : "";
+    const promptFromFlag = prompt_flag ? prompt_flag + promptJoiner : "";
+    const promptFromFile = prompt_file
+        ? promptFileContents ?? "" + promptJoiner
+        : "";
+    const promptSuffix = prompt_suffix ? prompt_suffix + promptJoiner : "";
 
     // TODO: make this respect -x trim()?
     return `${promptPrefix}${promptFromFlag}${promptFromArgs}${promptFromFile}${promptSuffix}`;
