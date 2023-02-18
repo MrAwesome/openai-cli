@@ -1,4 +1,5 @@
 import {OpenAICompletionCLIOptions} from "./validation";
+import {nullGuard} from "../../utils";
 
 // TODO: allow for multiple -p, multiple -f
 // TODO: make ordering explicit in help text: -p, args, -f, --prompt-suffix
@@ -10,25 +11,27 @@ export default function concatenatePromptPieces(
     promptFileContents: string | undefined
 ): string {
     let {
-        prompt_file,
-        prompt_flag,
-        prompt_prefix,
-        prompt_suffix,
-        prompt_joiner,
+        promptFlag,
+        promptPrefix,
+        promptSuffix,
+        promptJoiner,
+        trailingNewline,
+        joiner,
     } = openaiCompletionCLIOpts;
-    const promptFromArgs = args.join(" ");
 
-    const promptJoiner = prompt_joiner;
+    const actualJoiner = joiner
+        ? ""
+        : (promptJoiner ?? "");
 
-    // NOTE: If you add more sources of prompt text, be sure to handle both empty strings and undefined.
-    // TODO: make this respect -x trim()
-    const promptPrefix = prompt_prefix ? prompt_prefix + promptJoiner : "";
-    const promptFromFlag = prompt_flag ? prompt_flag + promptJoiner : "";
-    const promptFromFile = prompt_file
-        ? promptFileContents ?? "" + promptJoiner
+    const promptFromArgs = args.length > 0 ? args.join(" ") : undefined;
+
+    const pieces = [promptPrefix, promptFlag, promptFromArgs, promptFileContents, promptSuffix];
+
+    const finalNewLine = trailingNewline ? "" : "\n";
+
+    const prompt = pieces.filter(nullGuard).join(actualJoiner);
+
+    return prompt.length > 0
+        ? prompt + finalNewLine
         : "";
-    const promptSuffix = prompt_suffix ? prompt_suffix + promptJoiner : "";
-
-    // TODO: make this respect -x trim()?
-    return `${promptPrefix}${promptFromFlag}${promptFromArgs}${promptFromFile}${promptSuffix}`;
 }

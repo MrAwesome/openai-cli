@@ -4,9 +4,12 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 
+// TODO: "edit" command that takes input/output or in-place files
+// TODO: unit test that correct help output is shown for local vs. remote
+// TODO: debug --help for cli remote mode only showing help for top level
+// TODO: full unit test of options parsing through to what is sent to the API
+// TODO: aliases: babbage, ada, curie, davinci, codex, etc
 // TODO: automatically set max_tokens to near the max by estimating token length num and subtracting from known model max (is there a library for estimation?)
-// TODO: --prompt-prefix, --prompt-suffix, --prompt-joiner (support \n -> newline, \t -> tab, etc)
-// TODO: make --n canonical, make --repeat an alias
 // TODO: allow for stdin (use process.stdin.isTTY)
 // TODO: support for conversation mode in readline (option for Q./A. / other prefixes)
 // TODO: aliases/helpers for codex, etc
@@ -16,7 +19,7 @@ dotenv.config();
 // TODO: use readline to allow for interactive mode
 // TODO: integrate with signal/sms bots
 // TODO: conversation mode (needs limits, clear way to indicate end of conversation)
-// TODO: commands: list_models, help/--help
+// TODO: commands: list_models
 // TODO: don't let user set max_tokens to more than the model allows
 // TODO: interspersed -f and arguments/-p, for use in code generation
 // TODO: shortcuts for "write unit tests for" and "write a program that" (and maybe others)
@@ -28,7 +31,7 @@ dotenv.config();
 //   [] Live convo mode in the terminal/repl
 //   [] Live convo mode for chat?
 
-//// TODO: command to list all known models (including user's own models)
+//// TODO: command to list all known models (including user's own models? or just what we know here?)
 //// TODO: command to check models all still exist / verify info
 //const KNOWN_MODELS = {
 //    "text-davinci-003": {max_tokens: 4000},

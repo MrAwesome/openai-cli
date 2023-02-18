@@ -3,36 +3,14 @@ import {ScriptContext, SubCommandContext} from "./types";
 import process from "process";
 import commander from "commander";
 import {noop} from "./utils";
-import {OPENAI_COMPLETION_DEFAULTS} from "./defaultSettings";
 import OpenAICompletionCommand from "./commands/openai-completion/OpenAICompletionCommand";
+import {openaiCompletionCLIOptionsREMOTESchema} from "./commands/openai-completion/validation";
+import {makeCommanderSayTestName, shutUpCommander} from "./testUtils";
 
 // TODO: add 'null' or 'upstream' to force using the API's default for certain values
 // TODO: default values file
 
 type CTX = SubCommandContext;
-
-// Commander looooves to make a lot of noise to stderr in local runs, so shut it up
-function shutUpCommander(_testName: string) {
-    return (program: commander.Command) => {
-        program.configureOutput({
-            writeOut: () => {},
-            writeErr: () => {},
-        });
-    };
-}
-
-function makeCommanderSayTestName(testName: string) {
-    return (program: commander.Command) => {
-        program.configureOutput({
-            writeOut: (str) => {
-                console.log(`[INFO](${testName}): ${str}`);
-            },
-            writeErr: (str) => {
-                console.log(`[ERR](${testName}): ${str}`);
-            },
-        });
-    };
-}
 
 // NOTE: change this to 'makeCommanderSayTestName' to see the commander output
 const COMMANDER_OUTPUT_CONTROL = shutUpCommander;
@@ -63,6 +41,8 @@ class ExpectedProcessExitError extends Error {
     }
 }
 
+const defaultRemoteOpts = openaiCompletionCLIOptionsREMOTESchema.parse({});
+
 // number: the exit code we expect to be passed to process.exit by commander
 // {commanderErrorCode: string}: the error code we expect to be thrown by commander
 // {validator: (res: ReturnType<typeof parseCLI>) => void}: a function that will be called with the result of parseCLI if it returns successfully
@@ -87,7 +67,7 @@ const testYester = vd((res) => {
 
     // Test that at least one default setting is being passed through
     expect(ctx.unverifiedSubCommandOpts.model).toBe(
-        OPENAI_COMPLETION_DEFAULTS.model
+        defaultRemoteOpts.model
     );
 });
 

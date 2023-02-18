@@ -9,6 +9,10 @@ const readFile = util.promisify(fs.readFile);
 
 export function noop(...args: any[]) {}
 
+export function nullGuard<T>(obj: T | undefined | null): obj is T {
+    return obj !== undefined && obj !== null;
+}
+
 function toSnakeCase(str: string): string {
     return str.replace(/[A-Z]/g, (letter) => `_${letter.toLowerCase()}`);
 }
@@ -34,6 +38,10 @@ export function zodErrorToMessage(error: z.ZodError, depth = 0, unionDepth = 0):
     return error.issues
         .map((i) => zodIssueToMessage(i, depth))
         .join(`\n${"  ".repeat(depth)}`);
+}
+
+export function zodDefault<T extends z.ZodRawShape>(sc: z.ZodObject<T>, key: keyof T): ReturnType<T[keyof T]["_def"]["defaultValue"]> {
+    return sc.shape[key]._def.defaultValue();
 }
 
 function prefix(depth: number): string {

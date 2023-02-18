@@ -9,9 +9,6 @@ import {
     ScriptContext,
 } from "./types";
 import OpenAICompletionCommand from "./commands/openai-completion/OpenAICompletionCommand";
-import {
-    SCRIPT_DEFAULTS,
-} from "./defaultSettings";
 import {zodErrorToMessage} from "./utils";
 
 // TODO: it is probably much easier to just use .action instead of choosing subcommands manually - simply set the command name with .action
@@ -27,16 +24,19 @@ import {zodErrorToMessage} from "./utils";
 // TODO: determine if this should be used anywhere or if these are simple enough to just trust
 const cliFlagsREMOTESchema = z
     .object({
-        help: z.boolean().default(false),
         version: z.boolean().default(false), // TODO: unused
         debug: z.literal(false).default(false),
     })
     .strip();
 
+const cliFlagsREMOTESchemaDefaults = cliFlagsREMOTESchema.parse({});
+
 const cliFlagsLOCALSchema = cliFlagsREMOTESchema.extend({
-    local_UNSAFE: z.literal(true),
-    debug: z.boolean(),
+    local_UNSAFE: z.literal(true).default(true),
+    debug: z.boolean().default(false)
 });
+
+const cliFlagsLOCALSchemaDefaults = cliFlagsLOCALSchema.parse({});
 
 const cliFlagsSchema = cliFlagsREMOTESchema.or(cliFlagsLOCALSchema);
 
@@ -53,15 +53,18 @@ export default function parseCLI(
     // Normally, commander handles this for us
     //const prefixRemovedArgs = scriptContext.isRemote ? scriptContext.rawArgs : scriptContext.rawArgs.slice(2);
 
-    const {debug, version} = SCRIPT_DEFAULTS;
+    const cliFlagsDefaults = scriptContext.isRemote ? cliFlagsREMOTESchemaDefaults : cliFlagsLOCALSchemaDefaults;
+
     const program = new commander.Command().option(
         "-v, --version",
         `Display version`,
-        version
+        cliFlagsDefaults.version
     );
 
     if (!scriptContext.isRemote) {
-        program.option("-d, --debug", `Enable debug mode`, debug);
+        program.option("-d, --debug", `Enable debug mode`,
+            cliFlagsDefaults.debug
+        );
     }
 
     if (modifyProgramForTests !== undefined) {
@@ -99,7 +102,7 @@ export default function parseCLI(
         if (scriptContext.isRemote) {
             cliParserSubCommand.exitOverride();
             cliParserSubCommand.outputHelp = (helpContext) => {
-                helpText = program.helpInformation();
+                helpText = cliParserSubCommand.helpInformation();
             };
         }
 
