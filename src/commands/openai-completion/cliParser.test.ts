@@ -30,7 +30,7 @@ describe("cliParser", () => {
     beforeEach(() => {
         subCommand = new commander.Command();
         subCommand.exitOverride();
-        COMMANDER_OUTPUT_CONTROL("OpenAICompletionCommand")(subCommand);
+        COMMANDER_OUTPUT_CONTROL("OpenAICompletionCommand")[1](subCommand);
     });
 
     it.each`
@@ -76,7 +76,7 @@ describe("cliParser", () => {
                 if (opts[key] !== value) {
                     console.log(name, {opts}, [key, value]);
                 }
-                expect(opts[key]).toEqual(value);
+                expect(opts[key]).toStrictEqual(value);
             }
         }
     );
@@ -99,7 +99,7 @@ describe("cliParser", () => {
             try {
                 parse();
             } catch (e: any) {
-                expect(e.code).toEqual(shouldThrow.commanderErrorCode);
+                expect(e.code).toStrictEqual(shouldThrow.commanderErrorCode);
             }
         } else {
             parse();

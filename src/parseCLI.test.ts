@@ -1,11 +1,11 @@
 import parseCLI from "./parseCLI";
-import {ScriptContext, SubCommandContext} from "./types";
+import {CLIHelp, ScriptContext, SubCommandContext} from "./types";
 import process from "process";
 import commander from "commander";
 import {noop} from "./utils";
 import OpenAICompletionCommand from "./commands/openai-completion/OpenAICompletionCommand";
 import {openaiCompletionCLIOptionsREMOTESchema} from "./commands/openai-completion/validation";
-import {makeCommanderSayTestName, shutUpCommander} from "./testUtils";
+import {makeCommanderSayTestName, sc, shutUpCommander} from "./testUtils";
 
 // TODO: add 'null' or 'upstream' to force using the API's default for certain values
 // TODO: default values file
@@ -16,27 +16,8 @@ type CTX = SubCommandContext;
 const COMMANDER_OUTPUT_CONTROL = shutUpCommander;
 noop(makeCommanderSayTestName);
 
-function sc(
-    remote: "remote" | "local",
-    args: string[]
-): [string, ScriptContext] {
-    const scriptContext: ScriptContext =
-        remote === "remote"
-            ? {
-                  rawArgs: args,
-                  isRemote: true,
-                  serverAdminContactInfo: "fake@fake.fake",
-              }
-            : {
-                  rawArgs: args,
-                  isRemote: false,
-              };
-    const title = `[${remote}]: "${args.join(" ")}"`;
-    return [title, scriptContext];
-}
-
 class ExpectedProcessExitError extends Error {
-    constructor() {
+    constructor(public code: number) {
         super(`Expected`);
     }
 }
@@ -66,9 +47,7 @@ const testYester = vd((res) => {
     expect(ctx.subCommandArgs).toStrictEqual(["YESTER"]);
 
     // Test that at least one default setting is being passed through
-    expect(ctx.unverifiedSubCommandOpts.model).toBe(
-        defaultRemoteOpts.model
-    );
+    expect(ctx.unverifiedSubCommandOpts.model).toBe(defaultRemoteOpts.model);
 });
 
 // TODO: track down why 'error: unknown command' is still showing up in logs
@@ -247,12 +226,6 @@ describe("testCLIParsing", () => {
     ];
 
     test.each(data)("parseCLI(%s)", (title, scriptContext, checkType) => {
-        // Don't spam the console with commander help text.
-        jest.spyOn(
-            commander.Command.prototype,
-            "outputHelp"
-        ).mockImplementation(() => {});
-
         /// Mock process.exit so we can check the exit code
         let called = 0;
         jest.spyOn(process, "exit").mockImplementation(
@@ -260,7 +233,9 @@ describe("testCLIParsing", () => {
                 const expectedExitCode = checkType as number;
                 expect(code).toBe(expectedExitCode);
                 called += 1;
-                throw new ExpectedProcessExitError();
+
+                if (code === undefined) { code = 0; }
+                throw new ExpectedProcessExitError(code);
             }
         );
 
@@ -269,7 +244,7 @@ describe("testCLIParsing", () => {
             try {
                 const res = parseCLI(
                     scriptContext,
-                    COMMANDER_OUTPUT_CONTROL(title)
+                    COMMANDER_OUTPUT_CONTROL(title)[1]
                 );
                 checkType.validator(res);
             } catch (e) {
@@ -280,7 +255,7 @@ describe("testCLIParsing", () => {
             // The parseCLI function should fail, and process.exit should have been called with the expected error code
         } else if (typeof checkType === "number") {
             try {
-                parseCLI(scriptContext, COMMANDER_OUTPUT_CONTROL(title));
+                parseCLI(scriptContext, COMMANDER_OUTPUT_CONTROL(title)[1]);
             } catch (e) {
                 // process.exit should have been called once
                 expect(called).toBe(1);
@@ -296,7 +271,7 @@ describe("testCLIParsing", () => {
             "commanderErrorCode" in checkType
         ) {
             try {
-                parseCLI(scriptContext, COMMANDER_OUTPUT_CONTROL(title));
+                parseCLI(scriptContext, COMMANDER_OUTPUT_CONTROL(title)[1]);
             } catch (e) {
                 if (
                     e instanceof commander.CommanderError &&
@@ -310,4 +285,91 @@ describe("testCLIParsing", () => {
         }
         throw new Error("Didn't throw, but should have.");
     });
+});
+
+describe("help text", () => {
+    beforeEach(() => {
+        jest.spyOn(process, "exit").mockImplementation(
+            (code?: number | undefined) => {
+                if (code === undefined) { code = 0; }
+                throw new ExpectedProcessExitError(code);
+            }
+        );
+    });
+
+    // Test that help output has the correct text
+    test.each`
+        titleAndScriptContext                            | expectedHelpTextRegexes
+        ${sc("local", ["--help"])}                       | ${[/Usage: .*/, /openai-completion \[options\] \[prompt\.\.\.\]/, /help \[command\]/]}
+        ${sc("local", ["node", "fake.js", "openai-completion", "--help"])}  | ${[/--model/, /--temperature/, /--max-tokens/]}
+        ${sc("remote", ["--help"])}                      | ${[/Usage: .*/, /openai-completion \[options\] \[prompt\.\.\.\]/, /help \[command\]/]}
+        ${sc("remote", ["openai-completion", "--help"])} | ${[/--model/, /--temperature/, /--max-tokens/]}
+    `(
+        "helpText($title)",
+        ({
+            titleAndScriptContext,
+            expectedHelpTextRegexes,
+        }: {
+            titleAndScriptContext: [string, ScriptContext];
+            expectedHelpTextRegexes: RegExp[];
+        }) => {
+            const [title, scriptContext] = titleAndScriptContext;
+
+            if (scriptContext.isRemote) {
+                let output: ReturnType<typeof parseCLI>;
+                // The parseCLI function should pass, and then pass the validator function checks
+                try {
+                    output = parseCLI(
+                        scriptContext,
+                        COMMANDER_OUTPUT_CONTROL(title)[1]
+                    );
+                } catch (e) {
+                    console.log(e);
+                    throw e;
+                }
+
+                expect(output).toHaveProperty("helpText");
+
+                for (const expectedHelpTextRegex of expectedHelpTextRegexes) {
+                    expect((output as CLIHelp).helpText).toMatch(
+                        expectedHelpTextRegex
+                    );
+                }
+            } else {
+                // The parseCLI function should fail, and process.exit should have been called with the expected error code
+                const [mocks, outputControl] = COMMANDER_OUTPUT_CONTROL(title);
+                let code: number | undefined;
+                try {
+                    parseCLI(scriptContext, outputControl);
+                } catch (e) {
+                    if (e instanceof ExpectedProcessExitError) {
+                        code = e.code;
+                    } else {
+                        console.log(e);
+                        throw e;
+                    }
+                }
+
+                const {writeOut, writeErr} = mocks;
+
+                if (code === undefined) {
+                    throw new Error("Didn't exit, but should have.");
+                } else if (code === 0) {
+                    expect(writeOut).toHaveBeenCalledTimes(1);
+                    for (const expectedHelpTextRegex of expectedHelpTextRegexes) {
+                        expect(writeOut).toHaveBeenCalledWith(
+                            expect.stringMatching(expectedHelpTextRegex)
+                        );
+                    }
+                } else {
+                    expect(writeErr).toHaveBeenCalledTimes(1);
+                    for (const expectedHelpTextRegex of expectedHelpTextRegexes) {
+                        expect(writeErr).toHaveBeenCalledWith(
+                            expect.stringMatching(expectedHelpTextRegex)
+                        );
+                    }
+                }
+            }
+        }
+    );
 });
