@@ -13,6 +13,9 @@ import {jsonSchema} from "../../utils";
 // such as 'trailingNewline', as well as to have more human-readable names for the options
 // (e.g. 'repeat' instead of 'n').
 //
+// We don't enforce numerical boundaries (e.g. frequencyPenalty must be between -2 and 2)
+// because the OpenAI API/library will do that for us.
+//
 // NOTE: these are camelCase because that's what commander will generate
 export const openaiCompletionCLIOptionsREMOTESchema = z
     .object({

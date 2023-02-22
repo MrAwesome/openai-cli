@@ -4,13 +4,19 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 
+// TODO: allow for stdin (use process.stdin.isTTY to decide on conversation mode vs something else?)
+// TODO: implement streaming (see misc/testStream.ts)
+// TODO: openai-completion -> openai-complete?
+// TODO: cat file_to_edit.txt | ai openai-edit "Replace all instances of 'foo' with 'bar'" > file_to_edit.txt
+// TODO: ai openai-edit -f file_to_edit.txt "Replace all instances of 'foo' with 'bar'"
+// TODO: ai openai-edit -f file_to_edit.txt "Replace all instances of 'foo' with 'bar'" -o file_to_edit.txt
+// TODO: ai openai-edit -if file_to_edit.txt "Replace all instances of 'foo' with 'bar'"
 // TODO: "edit" command that takes input/output or in-place files
 // TODO: unit test that correct help output is shown for local vs. remote
 // TODO: debug --help for cli remote mode only showing help for top level
 // TODO: full unit test of options parsing through to what is sent to the API
 // TODO: aliases: babbage, ada, curie, davinci, codex, etc
 // TODO: automatically set max_tokens to near the max by estimating token length num and subtracting from known model max (is there a library for estimation?)
-// TODO: allow for stdin (use process.stdin.isTTY)
 // TODO: support for conversation mode in readline (option for Q./A. / other prefixes)
 // TODO: aliases/helpers for codex, etc
 // TODO: add dall-e command - handle --n

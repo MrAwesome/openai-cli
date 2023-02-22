@@ -19,7 +19,7 @@ import concatenatePromptPieces from "./concatenatePromptPieces";
 import OpenAICommand from "../../OpenAICommand";
 import cliParser from "./cliParser";
 
-import commander from "commander";
+import type commander from "commander";
 
 export default class OpenAICompletionCommand extends OpenAICommand<OpenAICompletionCLIOptions> {
     static subCommandName = "openai-completion";
@@ -50,8 +50,6 @@ export default class OpenAICompletionCommand extends OpenAICommand<OpenAIComplet
     verifyCLI(): OpenAICompletionCLIOptions | VerifyCLIError {
         const {unverifiedSubCommandOpts} = this.ctx;
 
-        // TODO don't verify the cli options, just verify what you send to the API?
-        // or do another verification step after you transform the cli opts to api opts?
         const openaiCompletionOptsOrErr =
             openaiCompletionCLIOptionsSchema.safeParse(
                 unverifiedSubCommandOpts
@@ -63,7 +61,6 @@ export default class OpenAICompletionCommand extends OpenAICommand<OpenAIComplet
         }
         const openaiCompletionCLIOpts = openaiCompletionOptsOrErr.data;
 
-        // Set here so there's no chance of the API key showing up in commander output
         return openaiCompletionCLIOpts;
     }
 

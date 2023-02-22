@@ -24,7 +24,8 @@ export default class CLIRunner {
                 return {
                     status: "failure_safe",
                     exitCode: 1,
-                    stderr: `[ERROR]: ${e.name}. This is an unexpected error. Please contact the server administrator and let them know: ${this.scriptContext.serverAdminContactInfo}`,
+                    stderr: `[ERROR]: ${e.name}. This is an unexpected error.
+Please contact the server administrator and let them know: ${this.scriptContext.serverAdminContactInfo}`,
                 };
             } else {
                 return {
