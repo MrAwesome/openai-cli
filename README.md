@@ -34,4 +34,19 @@ ai() {
 ## Examples
 
 ### Console
+
+Basic use:
+
 ![2023-02-09_20:16:35](https://user-images.githubusercontent.com/145945/217999281-e23ca27e-6104-4fcb-b6e3-c34d70528cdd.png)
+
+Changing temperature:
+
+![2023-03-18_21:56:31](https://user-images.githubusercontent.com/145945/226154525-db7f9e53-7693-4e88-a6e1-c612d3d32378.png)
+
+Reading from a file:
+
+![2023-03-18_22:00:05](https://user-images.githubusercontent.com/145945/226154631-512ef3b8-5daa-49dd-b6ff-62635361c458.png)
+
+Get freaky:
+
+![2023-03-18_22:04:54](https://user-images.githubusercontent.com/145945/226154808-37dd924a-0627-420a-a6ed-097c654bea8d.png)
