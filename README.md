@@ -1,5 +1,7 @@
 # openai-cli
 
+NOTE: This is very much under construction right now, so there are still a few rough edges. Please file an issue or contact me directly if you find problems.
+
 ## Installation
 
 ### Fetch the code
