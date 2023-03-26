@@ -80,3 +80,5 @@ async function localRun() {
 if (require.main === module) {
     localRun();
 }
+
+export {CLIRunner};
