@@ -27,11 +27,17 @@ export default function concatenatePromptPieces(
 
     const pieces = [promptPrefix, promptFlag, promptFromArgs, promptFileContents, promptSuffix];
 
-    const finalNewLine = trailingNewline ? "" : "\n";
+    let prompt = pieces.filter(nullGuard).join(actualJoiner);
 
-    const prompt = pieces.filter(nullGuard).join(actualJoiner);
+    if (prompt.length === 0) {
+        return "";
+    }
 
-    return prompt.length > 0
-        ? prompt + finalNewLine
-        : "";
+    if (trailingNewline) {
+        prompt += "\n";
+    } else {
+        prompt = prompt.replace(/\n+$/, "");
+    }
+
+    return prompt;
 }

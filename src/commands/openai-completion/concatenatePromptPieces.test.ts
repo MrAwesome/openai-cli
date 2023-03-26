@@ -11,7 +11,7 @@ describe("concatenatePromptPieces", () => {
             promptFlag: "flag",
             promptPrefix: "prefix",
             promptSuffix: "suffix",
-            trailingNewline: false,
+            trailingNewline: true,
             joiner: false,
         };
 
@@ -33,7 +33,7 @@ describe("concatenatePromptPieces", () => {
             "prefixflagarg1 arg2 arg3filecontentssuffix\n"
         );
 
-        opts.trailingNewline = true;
+        opts.trailingNewline = false;
         expect(concatenatePromptPieces(args, opts, promptFileContents)).toEqual(
             "prefixflagarg1 arg2 arg3filecontentssuffix"
         );
@@ -55,10 +55,11 @@ describe("concatenatePromptPieces", () => {
         ${[]}               | ${{promptPrefix: "prefix"}}                             | ${"prefix\n"}
         ${[]}               | ${{promptSuffix: "suffix"}}                             | ${"suffix\n"}
         ${[]}               | ${{promptPrefix: "prefix", promptSuffix: "suffix"}}     | ${"prefix\nsuffix\n"}
-        ${["arg1", "arg2"]} | ${{trailingNewline: true}}                              | ${"arg1 arg2"}
+        ${["arg1", "arg2"]} | ${{trailingNewline: true}}                              | ${"arg1 arg2\n"}
+        ${["arg1", "arg2"]} | ${{trailingNewline: false}}                             | ${"arg1 arg2"}
         ${["arg1", "arg2"]} | ${{joiner: true}}                                       | ${"arg1 arg2\n"}
         ${["arg1", "arg2"]} | ${{promptFlag: "flag", joiner: true}}                   | ${"flagarg1 arg2\n"}
-        ${["arg1", "arg2"]} | ${{promptPrefix: "prefix", trailingNewline: true}}      | ${"prefix\narg1 arg2"}
+        ${["arg1", "arg2"]} | ${{promptPrefix: "prefix", trailingNewline: false}}     | ${"prefix\narg1 arg2"}
         ${[]}               | ${{promptPrefix: "prefix", joiner: true}}               | ${"prefix\n"}
     `("should handle: $args $optsDelta", ({args, optsDelta, expected}) => {
         const remoteOpts = {
