@@ -82,7 +82,7 @@ export default function cliParser(
         .option("-u, --user <user>", `The user to use.`,
             d.user
         )
-        // TODO: Actually, should prompts end with <|endoftext|> or \n? I'm not sure the difference, should read up on that.
+        // TODO: Actually, should prompts end with <\|endoftext|> or \n? I'm not sure the difference, should read up on that.
         .option(
             "-n, --no-trailing-newline",
             "By default, a newline is added to the prompt sent to the model. This option removes that newline. Responses with this option will not be as likely to feel like conversations, but will be quite good at finishing a particular sentence/phrase/thought.",
