@@ -5,6 +5,7 @@ import {
     KnownSafeRunError,
     APIKeyNotSetError,
     ScriptContext,
+    FetchAdditionalDataError,
 } from "../../types";
 import {AxiosResponse} from "axios";
 import {Configuration, CreateCompletionResponse, OpenAIApi} from "openai";
@@ -13,7 +14,8 @@ import {zodErrorToMessage} from "../../utils";
 import {
     OpenAICompletionCLIOptions,
     openaiCompletionCLIOptionsSchema,
-    convertOpenAICompletionCLIOptionsToAPIOptions
+    convertOpenAICompletionCLIOptionsToAPIOptions,
+    OpenAICompletionCLIOptionsLOCAL
 } from "./validation";
 import concatenatePromptPieces from "./concatenatePromptPieces";
 import OpenAICommand from "../../OpenAICommand";
@@ -47,12 +49,36 @@ export default class OpenAICompletionCommand extends OpenAICommand<OpenAIComplet
         return fullcommand;
     }
 
-    verifyCLI(): OpenAICompletionCLIOptions | VerifyCLIError {
+    // TODO: create integration tests
+    async fetchAdditionalData(): Promise<Partial<OpenAICompletionCLIOptions> | FetchAdditionalDataError> {
+        const {scriptContext} = this.ctx;
+
+        if (!scriptContext.isRemote) {
+            const optsDelta: Partial<OpenAICompletionCLIOptionsLOCAL> = {};
+            // If this is false, we're likely being passed something on STDIN
+            if (!process.stdin.isTTY) {
+                let stdinText: string = "";
+                process.stdin.setEncoding('utf8');
+                for await (const chunk of process.stdin) {
+                    stdinText += chunk;
+                }
+                optsDelta.stdinText = stdinText;
+            }
+            return optsDelta;
+        } else {
+            return {};
+        }
+
+    }
+
+    verifyCLI(optsDelta: Partial<OpenAICompletionCLIOptions>): OpenAICompletionCLIOptions | VerifyCLIError {
         const {unverifiedSubCommandOpts} = this.ctx;
+
+        const fullUnverifiedSubCommandOpts = {...unverifiedSubCommandOpts, ...optsDelta};
 
         const openaiCompletionOptsOrErr =
             openaiCompletionCLIOptionsSchema.safeParse(
-                unverifiedSubCommandOpts
+                fullUnverifiedSubCommandOpts
             );
         if (!openaiCompletionOptsOrErr.success) {
             return new VerifyCLIError(
@@ -70,18 +96,21 @@ export default class OpenAICompletionCommand extends OpenAICommand<OpenAIComplet
         // check if we're in CLI mode, and if so, set scriptContext.isCLI
         const {
             topLevelCommandOpts,
-            subCommandArgs: args,
+            subCommandArgs,
+            scriptContext,
         } = this.ctx;
 
         // If 'promptFile' is set, read the file here and set 'promptFileContents' to the file contents
         const {promptFile} = verifiedOpts;
         let promptFileContents: string | undefined;
-        if (promptFile) {
+
+        // These will only be truthy/present in local runs, by design.
+        if (promptFile && "initialCwd" in scriptContext) {
             promptFileContents =
-                await getFileContents(promptFile);
+                await getFileContents(scriptContext.initialCwd, promptFile);
         }
 
-        const prompt = await concatenatePromptPieces(args, verifiedOpts, promptFileContents);
+        const prompt = concatenatePromptPieces(subCommandArgs, verifiedOpts, promptFileContents);
 
         if (prompt.length === 0) {
             return new KnownSafeRunError(
@@ -125,16 +154,18 @@ export default class OpenAICompletionCommand extends OpenAICommand<OpenAIComplet
         }
 
         // TODO: implement -x conditional trim() here
+        //const {trim} = verifiedOpts;
+
         let output = "";
         if (completionChoices.length > 1) {
-            completionChoices.forEach((choice, i) => {
+            completionChoices.forEach((choice, _i) => {
                 // Labeled numbered list:
                 //output += `${i + 1}. ${choice.text?.trim()}\n`;
-                output += `${choice.text?.trim()}\n`;
+                output += `${choice.text}\n`;
             });
         } else {
             // TODO: implement -x conditional trim() here
-            output = completionChoices[0].text?.trim() ?? "";
+            output = completionChoices[0].text ?? "";
         }
 
         if (output.trim() === "") {

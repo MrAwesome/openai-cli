@@ -11,6 +11,7 @@ dotenv.config();
 // TODO: ai openai-edit -f file_to_edit.txt "Replace all instances of 'foo' with 'bar'"
 // TODO: ai openai-edit -f file_to_edit.txt "Replace all instances of 'foo' with 'bar'" -o file_to_edit.txt
 // TODO: ai openai-edit -if file_to_edit.txt "Replace all instances of 'foo' with 'bar'"
+// TODO: cat file.py | ai openai-edit "Replace all instances of 'foo' with 'bar'"
 // TODO: "edit" command that takes input/output or in-place files
 // TODO: unit test that correct help output is shown for local vs. remote
 // TODO: debug --help for cli remote mode only showing help for top level
@@ -51,11 +52,14 @@ dotenv.config();
 async function localRun() {
     // CLI_IS_REMOTE is just a way to test remote behavior for local runs.
     const scriptContext: ScriptContext = process.env.CLI_IS_REMOTE === "true" ? {
+        repoBaseDir: __dirname,
         rawArgs: process.argv.slice(2),
         isRemote: true,
         serverAdminContactInfo: "test-admin@test.admin",
     } : {
+        repoBaseDir: __dirname,
         rawArgs: process.argv,
+        initialCwd: process.env.INIT_CWD || process.cwd(),
         isRemote: false,
     };
 

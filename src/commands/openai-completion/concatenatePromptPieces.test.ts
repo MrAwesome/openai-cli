@@ -13,6 +13,8 @@ describe("concatenatePromptPieces", () => {
             promptSuffix: "suffix",
             trailingNewline: true,
             joiner: false,
+            // NOTE: this wouldn't actually be present on remote opts, but it's fine for this test.
+            stdinText: "stdin",
         };
 
         const promptFileContents = "filecontents";
@@ -20,22 +22,22 @@ describe("concatenatePromptPieces", () => {
         const args: string[] = ["arg1", "arg2", "arg3"];
 
         expect(concatenatePromptPieces(args, opts, promptFileContents)).toEqual(
-            "prefix\nflag\narg1 arg2 arg3\nfilecontents\nsuffix\n"
+            "prefix\nflag\narg1 arg2 arg3\nstdin\nfilecontents\nsuffix\n"
         );
 
         opts.promptJoiner = "|";
         expect(concatenatePromptPieces(args, opts, promptFileContents)).toEqual(
-            "prefix|flag|arg1 arg2 arg3|filecontents|suffix\n"
+            "prefix|flag|arg1 arg2 arg3|stdin|filecontents|suffix\n"
         );
 
         opts.joiner = true;
         expect(concatenatePromptPieces(args, opts, promptFileContents)).toEqual(
-            "prefixflagarg1 arg2 arg3filecontentssuffix\n"
+            "prefixflagarg1 arg2 arg3stdinfilecontentssuffix\n"
         );
 
         opts.trailingNewline = false;
         expect(concatenatePromptPieces(args, opts, promptFileContents)).toEqual(
-            "prefixflagarg1 arg2 arg3filecontentssuffix"
+            "prefixflagarg1 arg2 arg3stdinfilecontentssuffix"
         );
     });
 
@@ -61,6 +63,7 @@ describe("concatenatePromptPieces", () => {
         ${["arg1", "arg2"]} | ${{promptFlag: "flag", joiner: true}}                   | ${"flagarg1 arg2\n"}
         ${["arg1", "arg2"]} | ${{promptPrefix: "prefix", trailingNewline: false}}     | ${"prefix\narg1 arg2"}
         ${[]}               | ${{promptPrefix: "prefix", joiner: true}}               | ${"prefix\n"}
+        ${[]}               | ${{stdinText: "muh_stdin"}}                             | ${"muh_stdin\n"}
     `("should handle: $args $optsDelta", ({args, optsDelta, expected}) => {
         const remoteOpts = {
             ...defaultRemoteOpts,

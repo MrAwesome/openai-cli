@@ -37,6 +37,7 @@ export const openaiCompletionCLIOptionsREMOTESchema = z
         suffix: z.string().nullable().optional(),
         trailingNewline: z.boolean().default(true),
         joiner: z.boolean().default(false),
+        trim: z.boolean().default(true),
 
         // <FORCED FALSE UNSAFE>
         // TODO: have -u be a part of scriptcontext - unix user, or arg passed in by calling library
@@ -57,8 +58,11 @@ export const openaiCompletionCLIOptionsLOCALSchema =
             user: z.string().optional().default(process.env.USER ?? "unknown-local-script-user"),
             stream: z.boolean().optional().default(false),
             promptFile: z.string().optional(),
+            stdinText: z.string().optional(),
         })
         .strip();
+
+export type OpenAICompletionCLIOptionsLOCAL = z.infer<typeof openaiCompletionCLIOptionsLOCALSchema>;
 
 export const openaiCompletionCLIOptionsREMOTESchemaDefaults = openaiCompletionCLIOptionsREMOTESchema.parse({});
 export const openaiCompletionCLIOptionsLOCALSchemaDefaults = openaiCompletionCLIOptionsLOCALSchema.parse({});

@@ -41,10 +41,13 @@ export function sc(
             ? {
                 rawArgs: args,
                 isRemote: true,
+                repoBaseDir: "fake_base_dir",
                 serverAdminContactInfo: "fake@fake.fake",
             }
             : {
                 rawArgs: args,
+                initialCwd: "fake_initial_cwd",
+                repoBaseDir: "fake_base_dir",
                 isRemote: false,
             };
     const title = `[${remote}]: "${args.join(" ")}"`;

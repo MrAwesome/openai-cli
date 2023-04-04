@@ -14,12 +14,15 @@ function makeContext(isRemote: boolean): ScriptContext {
     if (!isRemote) {
         return {
             isRemote,
+            repoBaseDir: "fake_base_dir",
+            initialCwd: "fake_initial_cwd",
             rawArgs, // Not used in these tests
         };
     } else {
         return {
             rawArgs,
             isRemote,
+            repoBaseDir: "fake_base_dir",
             serverAdminContactInfo: "blah@blah.blah",
         };
     }

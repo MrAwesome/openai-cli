@@ -114,12 +114,14 @@ export async function debugData(label: string, data: any) {
 }
 // </debugging>
 
+// TODO: more cli-user-friendly errors? currently just throws (although that contains plenty enough info)
 export async function getFileContents(
-    relativeFilename: string
+    initialCwd: string,
+    relativeFilename: string,
 ): Promise<string> {
     let prefix = "";
     if (path.parse(relativeFilename).root === "") {
-        prefix = process.env.INIT_CWD || process.cwd();
+        prefix = initialCwd;
     }
     const filename = path.join(prefix, relativeFilename);
     return await readFile(filename, "utf8");

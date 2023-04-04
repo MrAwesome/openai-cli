@@ -2,13 +2,13 @@ import {OpenAICompletionCLIOptions} from "./validation";
 import {nullGuard} from "../../utils";
 
 // TODO: allow for multiple -p, multiple -f
-// TODO: make ordering explicit in help text: -p, args, -f, --prompt-suffix
+// TODO: make ordering explicit in help text: --prompt-prefix, -p, args, stdin, -f, --prompt-suffix
 // TODO: make a prompt_suffix option, which comes very last
 
 export default function concatenatePromptPieces(
     args: string[],
     openaiCompletionCLIOpts: OpenAICompletionCLIOptions,
-    promptFileContents: string | undefined
+    promptFileContents: string | undefined,
 ): string {
     let {
         promptFlag,
@@ -25,7 +25,13 @@ export default function concatenatePromptPieces(
 
     const promptFromArgs = args.length > 0 ? args.join(" ") : undefined;
 
-    const pieces = [promptPrefix, promptFlag, promptFromArgs, promptFileContents, promptSuffix];
+    let stdinText: string | undefined = undefined;
+    if ("stdinText" in openaiCompletionCLIOpts) {
+        stdinText = openaiCompletionCLIOpts.stdinText;
+    }
+
+    // TODO: document this order in --help
+    const pieces = [promptPrefix, promptFlag, promptFromArgs, stdinText, promptFileContents, promptSuffix];
 
     let prompt = pieces.filter(nullGuard).join(actualJoiner);
 
