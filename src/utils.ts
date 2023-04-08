@@ -126,3 +126,7 @@ export async function getFileContents(
     const filename = path.join(prefix, relativeFilename);
     return await readFile(filename, "utf8");
 }
+
+export function getUnixTimestamp(): number {
+    return Math.floor(Date.now() / 1000);
+}

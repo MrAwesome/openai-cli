@@ -11,11 +11,15 @@ async function main() {
     });
     const openai = new OpenAIApi(configuration);
 
-    const completion = await openai.createChatCompletion({
-        model: "gpt-4",
-        messages: [{role: "user", content: message}],
-    });
-    console.log(completion.data.choices[0].message?.content)
+    try {
+        const completion = await openai.createChatCompletion({
+            model: "gpt-4",
+            messages: [{role: "user", content: message}],
+        });
+        console.log(completion.data.choices[0].message?.content)
+    } catch (e: any) {
+        console.log(e.response.data.error.message);
+    }
 }
 
 main();
