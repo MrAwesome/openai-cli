@@ -8,20 +8,22 @@ import {
     FetchAdditionalDataError,
 } from "../../types";
 import {AxiosResponse} from "axios";
-import {Configuration, CreateCompletionResponse, OpenAIApi} from "openai";
+import {Configuration, CreateChatCompletionResponse, CreateCompletionResponse, OpenAIApi} from "openai";
 import {debugData, getFileContents} from "../../utils";
 import {zodErrorToMessage} from "../../utils";
 import {
     OpenAICompletionCLIOptions,
     openaiCompletionCLIOptionsSchema,
     convertOpenAICompletionCLIOptionsToAPIOptions,
-    OpenAICompletionCLIOptionsLOCAL
+    OpenAICompletionCLIOptionsLOCAL,
+    OpenAICompletionAPIOptions
 } from "./validation";
 import concatenatePromptPieces from "./concatenatePromptPieces";
 import OpenAICommand from "../../OpenAICommand";
 import cliParser from "./cliParser";
 
 import type commander from "commander";
+import {isChatCompletionModel, convertCompletionRequestToChatCompletionRequest} from "./ChatCompletionTools";
 
 export default class OpenAICompletionCommand extends OpenAICommand<OpenAICompletionCLIOptions> {
     static subCommandName = "openai-completion";
@@ -31,7 +33,11 @@ export default class OpenAICompletionCommand extends OpenAICommand<OpenAIComplet
     constructor(protected ctx: SubCommandContext) {
         super();
         this.run = this.run.bind(this);
+        this.fetchAdditionalData = this.fetchAdditionalData.bind(this);
         this.verifyCLI = this.verifyCLI.bind(this);
+        this.callAPI = this.callAPI.bind(this);
+        this.callCompletionAPI = this.callCompletionAPI.bind(this);
+        this.callChatCompletionAPI = this.callChatCompletionAPI.bind(this);
     }
 
     static addSubCommandTo(
@@ -95,7 +101,6 @@ export default class OpenAICompletionCommand extends OpenAICommand<OpenAIComplet
     ): Promise<ScriptReturn | KnownSafeRunError> {
         // check if we're in CLI mode, and if so, set scriptContext.isCLI
         const {
-            topLevelCommandOpts,
             subCommandArgs,
             scriptContext,
         } = this.ctx;
@@ -124,14 +129,44 @@ export default class OpenAICompletionCommand extends OpenAICommand<OpenAIComplet
         }
         const apiKey = apiKeyOrErr;
 
-        // TODO: ensure these args are typed correctly
-        const {debug} = topLevelCommandOpts;
-        const apiOptions = convertOpenAICompletionCLIOptionsToAPIOptions(verifiedOpts, prompt);
-
-
         // NOTE: Despite the API options all being snake_case, the node client uses "apiKey"
         const configuration = new Configuration({apiKey});
         const openai = new OpenAIApi(configuration);
+
+        // TODO: ensure these args are typed correctly
+        const apiOptions = convertOpenAICompletionCLIOptionsToAPIOptions(verifiedOpts, prompt);
+        const {model} = apiOptions;
+
+        let output: string | KnownSafeRunError;
+        if (isChatCompletionModel(model)) {
+            output = await this.callChatCompletionAPI(openai, apiOptions, apiKey);
+        } else {
+            output = await this.callCompletionAPI(openai, apiOptions, apiKey);
+        }
+
+        if (output instanceof KnownSafeRunError) {
+            return output;
+        }
+
+        if (output.trim() === "") {
+            return new KnownSafeRunError("[ERROR] No text returned.");
+        }
+
+        // TODO: check that completionResponse is safe to display remotely, or if it contains api key
+        return {
+            status: "success",
+            exitCode: 0,
+            output,
+        };
+    }
+
+    private async callCompletionAPI(
+        openai: OpenAIApi,
+        apiOptions: OpenAICompletionAPIOptions,
+        apiKey: string,
+    ): Promise<string | KnownSafeRunError> {
+        const {topLevelCommandOpts} = this.ctx;
+        const {debug} = topLevelCommandOpts;
 
         let completionResponse: AxiosResponse<CreateCompletionResponse, any>;
         try {
@@ -168,16 +203,55 @@ export default class OpenAICompletionCommand extends OpenAICommand<OpenAIComplet
             output = completionChoices[0].text ?? "";
         }
 
-        if (output.trim() === "") {
-            return new KnownSafeRunError("[ERROR] No text returned.");
+        return output;
+    }
+
+    private async callChatCompletionAPI(
+        openai: OpenAIApi,
+        apiOptions: OpenAICompletionAPIOptions,
+        apiKey: string,
+    ): Promise<string | KnownSafeRunError> {
+        const {topLevelCommandOpts} = this.ctx;
+        const {debug} = topLevelCommandOpts;
+
+        let completionResponse: AxiosResponse<CreateChatCompletionResponse, any>;
+
+        const chatAPIOptions = convertCompletionRequestToChatCompletionRequest(apiOptions);
+
+        try {
+            completionResponse = await openai.createChatCompletion(chatAPIOptions);
+        } catch (e: any) {
+            debug && (await debugData("openaiCompletionError", e));
+            const message = this.sanitizeAndFormatOpenAIAPIError(e, apiKey);
+            return new KnownSafeRunError(message);
         }
 
-        // TODO: check that completionResponse is safe to display remotely, or if it contains api key
-        return {
-            status: "success",
-            exitCode: 0,
-            output,
-            data: completionResponse.data,
-        };
+        debug && debugData("openaiCompletion", completionResponse);
+
+        const completionChoices = completionResponse.data.choices;
+
+        // TODO: more generalized error handling
+        if (completionChoices.length === 0) {
+            return new KnownSafeRunError(
+                "[ERROR] No choices returned from the API."
+            );
+        }
+
+        // TODO: implement -x conditional trim() here
+        //const {trim} = verifiedOpts;
+
+        let output = "";
+        if (completionChoices.length > 1) {
+            completionChoices.forEach((choice, _i) => {
+                // Labeled numbered list:
+                //output += `${i + 1}. ${choice.text?.trim()}\n`;
+                output += `${choice.message?.content ?? ""}\n`;
+            });
+        } else {
+            // TODO: implement -x conditional trim() here
+            output = completionChoices[0].message?.content ?? "";
+        }
+
+        return output;
     }
 }

@@ -101,7 +101,6 @@ interface ScriptSuccess {
     status: "success";
     exitCode: 0;
     output: string;
-    data: any;
 }
 
 interface ScriptExit {
