@@ -35,6 +35,7 @@ export const openaiCompletionCLIOptionsREMOTESchema = z
         promptSuffix: z.string().optional(),
         promptPrefix: z.string().optional(),
         suffix: z.string().nullable().optional(),
+        system: z.string().optional(),
         trailingNewline: z.boolean().default(true),
         joiner: z.boolean().default(false),
         trim: z.boolean().default(true),

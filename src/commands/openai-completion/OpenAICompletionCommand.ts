@@ -139,7 +139,7 @@ export default class OpenAICompletionCommand extends OpenAICommand<OpenAIComplet
 
         let output: string | KnownSafeRunError;
         if (isChatCompletionModel(model)) {
-            output = await this.callChatCompletionAPI(openai, apiOptions, apiKey);
+            output = await this.callChatCompletionAPI(openai, apiOptions, apiKey, verifiedOpts.system);
         } else {
             output = await this.callCompletionAPI(openai, apiOptions, apiKey);
         }
@@ -210,13 +210,14 @@ export default class OpenAICompletionCommand extends OpenAICommand<OpenAIComplet
         openai: OpenAIApi,
         apiOptions: OpenAICompletionAPIOptions,
         apiKey: string,
+        system?: string,
     ): Promise<string | KnownSafeRunError> {
         const {topLevelCommandOpts} = this.ctx;
         const {debug} = topLevelCommandOpts;
 
         let completionResponse: AxiosResponse<CreateChatCompletionResponse, any>;
 
-        const chatAPIOptions = convertCompletionRequestToChatCompletionRequest(apiOptions);
+        const chatAPIOptions = convertCompletionRequestToChatCompletionRequest(apiOptions, system);
 
         try {
             completionResponse = await openai.createChatCompletion(chatAPIOptions);

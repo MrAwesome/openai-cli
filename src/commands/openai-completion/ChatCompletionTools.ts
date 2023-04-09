@@ -1,4 +1,6 @@
 import type {ChatCompletionRequestMessage, CreateChatCompletionRequest, CreateChatCompletionRequestStop, CreateCompletionRequest} from "openai";
+
+// TODO: Note in --help that echo and best_of? don't work for chat completion
 // TODO: add env var for default model
 // TODO: function for converting regular completion options to chat completion options
 // TODO: add --chat/--no-chat override

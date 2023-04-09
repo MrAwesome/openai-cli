@@ -49,6 +49,7 @@ describe("cliParser", () => {
         ${"bestOf"}             | ${["--best-of", "3"]}             | ${{bestOf: 3}}
         ${"echo"}               | ${["--echo", "true"]}             | ${{echo: true}}
         ${"stop"}               | ${["--stop", "foo"]}              | ${{stop: "foo"}}
+        ${"system"}             | ${["--system", "foo"]}            | ${{system: "foo"}}
         ${"stream"}             | ${["--stream", "true"]}           | ${{stream: true}}
         ${"topP"}               | ${["--top-p", "0.9"]}             | ${{topP: 0.9}}
         ${"promptSuffix"}       | ${["--prompt-suffix", "!"]}       | ${{promptSuffix: "!"}}

@@ -69,8 +69,8 @@ export default function cliParser(
             `The logit bias to use.`,
         )
         // NOTE: the api actually supports an array here too, up to four elements
-        .option("-S, --stop <stop>", `The stop sequence to use.`)
-        .option("-s, --stream", `Stream the response.`,
+        .option("--stop <stop>", `The stop sequence to use.`)
+        .option("-S, --stream", `Stream the response.`,
             d.stream
         )
         .option(
@@ -106,6 +106,11 @@ export default function cliParser(
 
             "Shorthand for --prompt-joiner ''. Prompt pieces will be treated as a single string, with no newlines or other separators. Takes precedence over --prompt-joiner.",
             !d.joiner
+        )
+        .option(
+            "-s, --system <system>",
+            "The 'system' instructions for chat completion models. This has no effect on other models, only chat models such as gpt-4 and gpt-3.5-turbo.",
+            d.system
         )
 
         // Unused, as they don't add anything to the functionality of a CLI:
