@@ -1,7 +1,6 @@
-// Path: validation.ts
-//
 import {z} from "zod";
 import {
+    DEFAULT_OPENAI_COMPLETION_MODEL,
     DEFAULT_OPENAI_REMOTE_USER,
 } from "../../defaultSettings";
 import {jsonSchema} from "../../utils";
@@ -19,8 +18,8 @@ import {jsonSchema} from "../../utils";
 // NOTE: these are camelCase because that's what commander will generate
 export const openaiCompletionCLIOptionsREMOTESchema = z
     .object({
-        model: z.string().default("text-davinci-003"),
-        temperature: z.number().default(0.6),
+        model: z.string().default(DEFAULT_OPENAI_COMPLETION_MODEL),
+        temperature: z.number().default(1),
         maxTokens: z.number().default(1024),
         repeat: z.number().default(1),
         echo: z.boolean().default(false),
