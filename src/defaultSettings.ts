@@ -1,3 +1,6 @@
+import dotenv from 'dotenv';
+dotenv.config();
+
 export const KNOWN_SUBCOMMAND_NAMES = ["openai-completion"] as const;
 export type KnownSubCommandName = typeof KNOWN_SUBCOMMAND_NAMES[number];
 export const KNOWN_SUBCOMMAND_NAMES_SET = new Set(KNOWN_SUBCOMMAND_NAMES);
