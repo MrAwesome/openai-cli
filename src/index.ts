@@ -6,7 +6,6 @@ dotenv.config();
 
 // TODO: allow for stdin (use process.stdin.isTTY to decide on conversation mode vs something else?)
 // TODO: implement streaming (see misc/testStream.ts)
-// TODO: openai-completion -> openai-complete?
 // TODO: cat file_to_edit.txt | ai openai-edit "Replace all instances of 'foo' with 'bar'" > file_to_edit.txt
 // TODO: ai openai-edit -f file_to_edit.txt "Replace all instances of 'foo' with 'bar'"
 // TODO: ai openai-edit -f file_to_edit.txt "Replace all instances of 'foo' with 'bar'" -o file_to_edit.txt

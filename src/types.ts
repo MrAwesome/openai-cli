@@ -9,10 +9,12 @@ export interface SubCommandConstructor<Opts> {
     // NOTE: This must be static.
     addSubCommandTo(program: commander.Command, scriptContext: ScriptContext): commander.Command;
     subCommandName: string;
+    aliases: string[];
     description: string;
     showHelpOnEmptyArgsAndOptions: boolean;
 }
 export abstract class SubCommand<Opts> {
+    static aliases: string[] = [];
     protected abstract ctx: SubCommandContext;
 
     //abstract makeCompletionParser(program: commander.Command, rawArgs: string[]);

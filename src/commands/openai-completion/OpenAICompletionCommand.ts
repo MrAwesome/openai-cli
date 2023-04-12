@@ -27,6 +27,7 @@ import {isChatCompletionModel, convertCompletionRequestToChatCompletionRequest} 
 
 export default class OpenAICompletionCommand extends OpenAICommand<OpenAICompletionCLIOptions> {
     static subCommandName = "openai-completion";
+    static aliases = ["complete", "openai-complete", "completion"];
     static description = "Generate text using OpenAI's Completion API";
     static showHelpOnEmptyArgsAndOptions = true;
 
@@ -46,6 +47,7 @@ export default class OpenAICompletionCommand extends OpenAICommand<OpenAIComplet
     ): commander.Command {
         const basicCommand = program
             .command(this.subCommandName)
+            .aliases(this.aliases)
             .description(this.description);
         const fullcommand = cliParser(
             basicCommand,

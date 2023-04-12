@@ -4,6 +4,7 @@ import {
     ScriptContext,
     KnownSafeRunError,
     ParseCLIError,
+    SubCommandContext,
 } from "./types";
 
 export default class CLIRunner {
@@ -58,7 +59,9 @@ Please contact the server administrator and let them know: ${this.scriptContext.
             };
         }
 
-        const subCommandContext = parseRes;
+        // TODO: you can possibly just pass in SubCommandContext to this function or a similar one directly,
+        //       to allow for more direct/programmatic control over command behavior
+        const subCommandContext: SubCommandContext = parseRes;
         const {subCommandConstructor} = subCommandContext;
 
         const subCommand = new subCommandConstructor(subCommandContext);

@@ -300,9 +300,9 @@ describe("help text", () => {
     // Test that help output has the correct text
     test.each`
         titleAndScriptContext                            | expectedHelpTextRegexes
-        ${sc("local", ["--help"])}                       | ${[/Usage: .*/, /openai-completion \[options\] \[prompt\.\.\.\]/, /help \[command\]/]}
+        ${sc("local", ["--help"])}                       | ${[/Usage: .*/, /openai-completion.*\[options\] \[prompt\.\.\.\]/, /help \[command\]/]}
         ${sc("local", ["node", "fake.js", "openai-completion", "--help"])}  | ${[/--model/, /--temperature/, /--max-tokens/]}
-        ${sc("remote", ["--help"])}                      | ${[/Usage: .*/, /openai-completion \[options\] \[prompt\.\.\.\]/, /help \[command\]/]}
+        ${sc("remote", ["--help"])}                      | ${[/Usage: .*/, /openai-completion.*\[options\] \[prompt\.\.\.\]/, /help \[command\]/]}
         ${sc("remote", ["openai-completion", "--help"])} | ${[/--model/, /--temperature/, /--max-tokens/]}
     `(
         "helpText($title)",

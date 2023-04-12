@@ -11,6 +11,7 @@ import {
 import OpenAICompletionCommand from "./commands/openai-completion/OpenAICompletionCommand";
 import {zodErrorToMessage} from "./utils";
 
+// TODO: add support for "aliased" commands, such as "byron" - possibly can call this recursively with the desired args? it's just hard because commander's local mode doesn't get passed the args directly, it goes and determines them from the command line (and will try to fail if it sees an unrecognized command). maybe commands can be registered, but with an action that just recursively calls this with the desired function/args?
 // TODO: it is probably much easier to just use .action instead of choosing subcommands manually - simply set the command name with .action
 // TODO: just --help should be processed as if it were on the base command. how can you do that?
 // TODO: translation layer between what commander gives us and what openai expects
@@ -101,7 +102,7 @@ export default function parseCLI(
         });
         if (scriptContext.isRemote) {
             cliParserSubCommand.exitOverride();
-            cliParserSubCommand.outputHelp = (helpContext) => {
+            cliParserSubCommand.outputHelp = (_helpContext) => {
                 helpText = cliParserSubCommand.helpInformation();
             };
         }
@@ -123,7 +124,7 @@ export default function parseCLI(
         program.exitOverride((err) => {
             throw err;
         });
-        program.outputHelp = (helpContext) => {
+        program.outputHelp = (_helpContext) => {
             helpText = program.helpInformation();
         };
     }
