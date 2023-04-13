@@ -6,6 +6,7 @@ import {
     APIKeyNotSetError,
     ScriptContext,
     FetchAdditionalDataError,
+    ScriptSuccess,
 } from "../../types";
 import {AxiosResponse} from "axios";
 import {Configuration, CreateChatCompletionResponse, CreateCompletionResponse, OpenAIApi} from "openai";
@@ -26,8 +27,11 @@ import type commander from "commander";
 import {isChatCompletionModel, convertCompletionRequestToChatCompletionRequest} from "./ChatCompletionTools";
 
 export default class OpenAICompletionCommand extends OpenAICommand<OpenAICompletionCLIOptions> {
+    static className = "OpenAICompletionCommand";
+
     static subCommandName = "openai-completion";
     static aliases = ["complete", "openai-complete", "completion"];
+
     static description = "Generate text using OpenAI's Completion API";
     static showHelpOnEmptyArgsAndOptions = true;
 
@@ -155,11 +159,19 @@ export default class OpenAICompletionCommand extends OpenAICommand<OpenAIComplet
         }
 
         // TODO: check that completionResponse is safe to display remotely, or if it contains api key
-        return {
+        const success: ScriptSuccess = {
             status: "success",
             exitCode: 0,
+            commandContext: {
+                className: OpenAICompletionCommand.className,
+                service: "openai",
+                command: "completion",
+                model,
+            },
             output,
         };
+
+        return success;
     }
 
     private async callCompletionAPI(

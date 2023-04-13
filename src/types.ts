@@ -97,18 +97,38 @@ export type ScriptContext = {
             serverAdminContactInfo: string;
         });
 
-export type ScriptReturn = ScriptSuccess | ScriptExit | ScriptFailure;
+export type ScriptReturn = ScriptSuccess | ScriptNormalExit | ScriptFailure;
 
-interface ScriptSuccess {
+export interface CommandContext {
+    // className: this is the only guaranteed field, the rest are optional and may change
+    className: string;
+
+    // service: the service, such as "openai"
+    service?: string;
+
+    // command: the command, such as "completion"
+    command?: string;
+
+    // model: the model, such as "davinci"
+    model?: string;
+
+    // context: Should never be relied on for anything except debugging, as it may change or be different between commands.
+    // NOTE: this can't be strongly typed unless what's passed in to the library is strongly typed
+    context?: any;
+}
+
+export interface ScriptSuccess {
     status: "success";
     exitCode: 0;
     output: string;
+    commandContext: CommandContext;
 }
 
-interface ScriptExit {
+export interface ScriptNormalExit {
     status: "exit";
     exitCode: 0;
     output: string;
+    errorData?: any;
 }
 
 type ScriptFailure = ScriptFailureSafe | ScriptFailureUnsafe;
