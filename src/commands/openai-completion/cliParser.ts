@@ -6,7 +6,7 @@ import {myParseInt} from "../../utils";
 import {ScriptContext} from "../../types";
 import commander from "commander";
 
-export default function cliParser(
+export default function openaiCompletionCLIParser(
     subCommand: commander.Command,
     scriptContext: ScriptContext
 ): commander.Command {

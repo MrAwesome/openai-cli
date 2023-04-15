@@ -4,6 +4,7 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 
+// TODO: s/subcommand/command/ everywhere
 // TODO: allow for stdin (use process.stdin.isTTY to decide on conversation mode vs something else?)
 // TODO: don't allow options after the first argument
 // TODO: make sure that apostrophes are handled correctly (relates to the previous item)

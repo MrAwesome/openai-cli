@@ -21,7 +21,7 @@ import {
 } from "./validation";
 import concatenatePromptPieces from "./concatenatePromptPieces";
 import OpenAICommand from "../../OpenAICommand";
-import cliParser from "./cliParser";
+import openaiCompletionCLIParser from "./cliParser";
 
 import type commander from "commander";
 import {isChatCompletionModel, convertCompletionRequestToChatCompletionRequest} from "./ChatCompletionTools";
@@ -53,7 +53,7 @@ export default class OpenAICompletionCommand extends OpenAICommand<OpenAIComplet
             .command(this.subCommandName)
             .aliases(this.aliases)
             .description(this.description);
-        const fullcommand = cliParser(
+        const fullcommand = openaiCompletionCLIParser(
             basicCommand,
             scriptContext
         );

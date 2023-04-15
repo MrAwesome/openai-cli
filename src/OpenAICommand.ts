@@ -10,6 +10,7 @@ class OpenAIAPIKeyNotSetError extends APIKeyNotSetError {
     }
 }
 
+// TODO: instead of a superclass, this should be a trait or set of utility functions
 export default abstract class OpenAICommand<Opts> extends SubCommand<Opts> {
     protected getAPIKey(): string | APIKeyNotSetError {
         const apiKey = process.env.OPENAI_API_KEY;

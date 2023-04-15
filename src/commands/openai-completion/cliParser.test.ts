@@ -1,4 +1,4 @@
-import cliParser from "./cliParser";
+import openaiCompletionCLIParser from "./cliParser";
 import commander from "commander";
 import {ScriptContext} from "../../types";
 import {OpenAICompletionCLIOptions} from "./validation";
@@ -70,7 +70,7 @@ describe("cliParser", () => {
             expectedDeltaFromDefault: Partial<OpenAICompletionCLIOptions>;
         }) => {
             const context = makeContext(false);
-            const cmd = cliParser(subCommand, context);
+            const cmd = openaiCompletionCLIParser(subCommand, context);
 
             cmd.parse(args, {from: "user"});
             const opts = cmd.opts();
@@ -97,7 +97,7 @@ describe("cliParser", () => {
                 {isRemote: boolean, args: string[], shouldThrow: {commanderErrorCode?: string}}
                ) => {
         const context = makeContext(isRemote);
-        const cmd = cliParser(subCommand, context);
+        const cmd = openaiCompletionCLIParser(subCommand, context);
         const parse = () => cmd.parse(args, {from: "user"});
         if ("commanderErrorCode" in shouldThrow) {
             try {
