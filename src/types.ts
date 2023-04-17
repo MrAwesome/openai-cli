@@ -58,6 +58,9 @@ export class KnownSafeRunError {
 // (e.g. incorrect syntax, missing required args, etc.)
 export class ParseCLIError extends KnownSafeRunError {
     isParseError = true;
+    constructor(message: string, public originalError?: Error) {
+        super(message);
+    }
 }
 
 export class APIKeyNotSetError extends KnownSafeRunError {

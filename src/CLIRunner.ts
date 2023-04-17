@@ -18,6 +18,9 @@ export default class CLIRunner {
         try {
             return await this.run_INTERNAL();
         } catch (e: any) {
+            if (["true", "1"].includes(process.env.DEBUG_THROW ?? "false")) {
+                throw e;
+            }
             if (isRemote) {
                 console.log(
                     `[ERROR] Unknown error in remote run: ${e.message}`

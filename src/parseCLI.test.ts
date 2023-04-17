@@ -1,5 +1,5 @@
 import parseCLI from "./parseCLI";
-import {CLIHelp, ScriptContext, SubCommandContext} from "./types";
+import {CLIHelp, ParseCLIError, ScriptContext, SubCommandContext} from "./types";
 import process from "process";
 import commander from "commander";
 import {noop} from "./utils";
@@ -196,11 +196,11 @@ describe("testCLIParsing", () => {
             }),
         ],
         [
-            ...sc("remote", ["--DOOPDOOPDOO", "YUH"]),
+            ...sc("remote", ["--DOOP_OPTION", "YUH"]),
             {commanderErrorCode: "commander.unknownOption"},
         ],
         [
-            ...sc("remote", ["DOOPDOOPDOO", "YUH"]),
+            ...sc("remote", ["DOOP_ARG", "YUH"]),
             {commanderErrorCode: "commander.unknownCommand"},
         ],
         [
@@ -270,18 +270,17 @@ describe("testCLIParsing", () => {
             typeof checkType === "object" &&
             "commanderErrorCode" in checkType
         ) {
-            try {
-                parseCLI(scriptContext, COMMANDER_OUTPUT_CONTROL(title)[1]);
-            } catch (e) {
-                if (
-                    e instanceof commander.CommanderError &&
-                    e.code === checkType.commanderErrorCode
-                ) {
-                    return;
-                }
-                console.log(e);
-                throw e;
+            const res = parseCLI(scriptContext, COMMANDER_OUTPUT_CONTROL(title)[1]);
+            const e = (res as ParseCLIError).originalError;
+
+            if (
+                e instanceof commander.CommanderError &&
+                e.code === checkType.commanderErrorCode
+            ) {
+                return;
             }
+        } else {
+            throw new Error("Somehow reached an impossible condition in test for:", checkType);
         }
         throw new Error("Didn't throw, but should have.");
     });

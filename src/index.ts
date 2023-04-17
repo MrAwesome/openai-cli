@@ -4,6 +4,7 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 
+// TODO: handle network errors: TypeError: Cannot read properties of undefined (reading 'data')
 // TODO: s/subcommand/command/ everywhere
 // TODO: allow for stdin (use process.stdin.isTTY to decide on conversation mode vs something else?)
 // TODO: don't allow options after the first argument
@@ -53,7 +54,7 @@ dotenv.config();
 
 async function localRun() {
     // CLI_IS_REMOTE is just a way to test remote behavior for local runs.
-    const scriptContext: ScriptContext = process.env.CLI_IS_REMOTE === "true" ? {
+    const scriptContext: ScriptContext = ["true", "1"].includes(process.env.CLI_IS_REMOTE ?? "false") ? {
         repoBaseDir: __dirname,
         rawArgs: process.argv.slice(2),
         isRemote: true,

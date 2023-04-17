@@ -52,6 +52,8 @@ done
 # Consolidate commit message
 COMMIT_MESSAGE="$*"
 
+rm -r dist/
+
 yarn build
 yarn test
 

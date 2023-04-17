@@ -130,13 +130,16 @@ export default function parseCLI(
     }
 
     try {
-        //program.parse(fixedFullCommandArgs_RAW, parseOptions);
         program.parse(scriptContext.rawArgs, mainCommandParseOptions);
-    } catch (err) {
+    } catch (err: any) {
         if (helpText) {
             return {helpText};
         } else {
-            throw err;
+            if (err instanceof commander.CommanderError) {
+                return new ParseCLIError(err.message, err);
+            } else {
+                throw err;
+            }
         }
     }
     const topLevelOpts = program.opts();
@@ -155,7 +158,7 @@ export default function parseCLI(
     if (!topLevelCommandOptsOrErr.success) {
         const zodErrorMessage = zodErrorToMessage(topLevelCommandOptsOrErr.error);
         return new ParseCLIError(
-            `Error parsing top-level CLI options: ${zodErrorMessage}`
+            `Error verifying top-level CLI options: ${zodErrorMessage}`
         );
     }
     const topLevelCommandOpts = topLevelCommandOptsOrErr.data;
