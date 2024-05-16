@@ -13,7 +13,7 @@ async function main() {
 
     try {
         const completion = await openai.createChatCompletion({
-            model: "gpt-4",
+            model: "gpt-4o",
             messages: [{role: "user", content: message}],
         });
         console.log(completion.data.choices[0].message?.content)

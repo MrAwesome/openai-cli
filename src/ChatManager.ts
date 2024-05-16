@@ -14,7 +14,7 @@ const DEFAULT_CHAT_NAME = "Untitled Chat";
 // TODO: pull in the default model as a config value for ChatManager
 
 const DEFAULT_SERVICE_INFO: ServiceInfo = {
-    modelID: "gpt-4",
+    modelID: "gpt-4o",
     service: "openai-chat-completion",
 }
 
