@@ -9,7 +9,7 @@ export const DEFAULT_SUBCOMMAND_NAME = "openai-completion" as const;
 
 export const DEFAULT_OPENAI_REMOTE_USER = "remote_user" as const;
 
-const DEFAULT_FALLBACK_OPENAI_COMPLETION_MODEL = "text-davinci-003" as const;
+const DEFAULT_FALLBACK_OPENAI_COMPLETION_MODEL = "gpt-4o" as const;
 export const DEFAULT_OPENAI_COMPLETION_MODEL = process.env.DEFAULT_OPENAI_COMPLETION_MODEL || DEFAULT_FALLBACK_OPENAI_COMPLETION_MODEL;
 
 // TODO: unit/integration test that this is returned as stderr when the API key is invalid/missing
