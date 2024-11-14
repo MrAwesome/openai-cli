@@ -71,7 +71,8 @@ export function convertCompletionRequestToChatCompletionRequest(
     }
 
     let max_tokens: number | undefined;
-    if (completionRequest.max_tokens === null) {
+    let max_completion_tokens: number | undefined;
+    if (completionRequest.max_tokens === null || completionRequest.model.startsWith("o1")) {
         max_tokens = undefined;
     } else {
         max_tokens = completionRequest.max_tokens;
@@ -79,6 +80,18 @@ export function convertCompletionRequestToChatCompletionRequest(
 
     delete rest.best_of;
     delete rest.echo;
+
+    if (completionRequest.model.startsWith("o1")) {
+        max_completion_tokens = max_tokens;
+        delete rest.max_tokens;
+        return {
+            ...rest,
+            // @ts-ignore
+            max_completion_tokens,
+            messages,
+            stop,
+        };
+    }
 
     return {
         ...rest,
