@@ -14,6 +14,8 @@ const KNOWN_CHAT_COMPLETION_MODELS = [
     "gpt-4o",
     "o1-mini",
     "o1-preview",
+    "o1",
+    "o3-mini",
     "gpt-4-0314",
     "gpt-4-32k",
     "gpt-4-32k-0314",
@@ -70,9 +72,11 @@ export function convertCompletionRequestToChatCompletionRequest(
         stop = completionRequest.stop;
     }
 
+    let needs_completion_in_name: boolean = completionRequest.model.startsWith("o1") || completionRequest.model.startsWith("o3");
+
     let max_tokens: number | undefined;
     let max_completion_tokens: number | undefined;
-    if (completionRequest.max_tokens === null || completionRequest.model.startsWith("o1")) {
+    if (completionRequest.max_tokens === null || needs_completion_in_name) {
         max_tokens = undefined;
     } else {
         max_tokens = completionRequest.max_tokens;
@@ -81,7 +85,7 @@ export function convertCompletionRequestToChatCompletionRequest(
     delete rest.best_of;
     delete rest.echo;
 
-    if (completionRequest.model.startsWith("o1")) {
+    if (needs_completion_in_name) {
         max_completion_tokens = max_tokens;
         delete rest.max_tokens;
         return {
