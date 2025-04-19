@@ -2,6 +2,7 @@ import {z} from "zod";
 import {
     DEFAULT_OPENAI_COMPLETION_MODEL,
     DEFAULT_OPENAI_REMOTE_USER,
+    DEFAULT_LOCAL_ENDPOINT,
 } from "../../defaultSettings";
 import {jsonSchema} from "../../utils";
 
@@ -59,6 +60,11 @@ export const openaiCompletionCLIOptionsLOCALSchema =
             stream: z.boolean().optional().default(false),
             promptFile: z.string().optional(),
             stdinText: z.string().optional(),
+            endpoint: z.preprocess((val, ctx) =>
+                val === "local" ? DEFAULT_LOCAL_ENDPOINT : val,
+                z.string().url().optional()
+            ),
+            local: z.boolean().optional().default(false),
         })
         .strip();
 

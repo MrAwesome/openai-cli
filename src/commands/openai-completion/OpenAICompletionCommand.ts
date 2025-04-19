@@ -25,6 +25,7 @@ import openaiCompletionCLIParser from "./cliParser";
 
 import type commander from "commander";
 import {isChatCompletionModel, convertCompletionRequestToChatCompletionRequest} from "./ChatCompletionTools";
+import {DEFAULT_LOCAL_ENDPOINT} from "../../defaultSettings";
 
 export default class OpenAICompletionCommand extends OpenAICommand<OpenAICompletionCLIOptions> {
     static className = "OpenAICompletionCommand";
@@ -135,8 +136,16 @@ export default class OpenAICompletionCommand extends OpenAICommand<OpenAIComplet
         }
         const apiKey = apiKeyOrErr;
 
+        let basePath = undefined;
+        if ("endpoint" in verifiedOpts) {
+            const {endpoint} = verifiedOpts;
+            basePath = endpoint;
+        } else if ("local" in verifiedOpts) {
+            basePath = DEFAULT_LOCAL_ENDPOINT;
+        }
+
         // NOTE: Despite the API options all being snake_case, the node client uses "apiKey"
-        const configuration = new Configuration({apiKey});
+        const configuration = new Configuration({apiKey, basePath});
         const openai = new OpenAIApi(configuration);
 
         // TODO: ensure these args are typed correctly

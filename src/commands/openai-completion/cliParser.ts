@@ -50,6 +50,12 @@ export default function openaiCompletionCLIParser(
             parseFloat,
             d.temperature
         )
+        .option(
+            "-e, --endpoint <endpoint>",
+            `The OpenAI API-compatible endpoint to use. Defaults to actual OpenAI. Use the string 'local' to default to 'http://localhost:8080/v1', for the llama.cpp local server.`,
+        )
+        .option("-l, --local",
+                "Shorthand for '-e local'. Overridden by '-e'.")
         .option("-p, --prompt <prompt>", `The prompt to use.`)
 
         // Currently <unused>:
@@ -60,7 +66,7 @@ export default function openaiCompletionCLIParser(
             d.bestOf
         )
         .option(
-            "-e, --echo",
+            "-E, --echo",
             `Echo the prompt back before the completion.`,
             d.echo
         )
