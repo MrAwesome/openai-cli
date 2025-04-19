@@ -64,7 +64,7 @@ export const openaiCompletionCLIOptionsLOCALSchema =
                 val === "local" ? DEFAULT_LOCAL_ENDPOINT : val,
                 z.string().url().optional()
             ),
-            local: z.boolean().optional().default(false),
+            local: z.boolean().optional(),
         })
         .strip();
 

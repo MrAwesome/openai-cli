@@ -140,7 +140,7 @@ export default class OpenAICompletionCommand extends OpenAICommand<OpenAIComplet
         if ("endpoint" in verifiedOpts) {
             const {endpoint} = verifiedOpts;
             basePath = endpoint;
-        } else if ("local" in verifiedOpts) {
+        } else if ("local" in verifiedOpts && verifiedOpts.local) {
             basePath = DEFAULT_LOCAL_ENDPOINT;
         }
 
