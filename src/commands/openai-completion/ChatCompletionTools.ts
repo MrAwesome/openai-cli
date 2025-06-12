@@ -9,12 +9,15 @@ import type {ChatCompletionRequestMessage, CreateChatCompletionRequest, CreateCh
 
 // Values retrieved from https://platform.openai.com/docs/models/model-endpoint-compatibility on 2023-04-08
 
+// TODO: now that this is the default, this should be inverted so only known old models use the completions endpoint
 const KNOWN_CHAT_COMPLETION_MODELS = [
     "gpt-4",
     "gpt-4o",
     "o1-mini",
     "o1-preview",
     "o1",
+    "o3",
+    "o3-pro",
     "o3-mini",
     "gpt-4-0314",
     "gpt-4-32k",
