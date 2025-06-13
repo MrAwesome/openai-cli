@@ -46,7 +46,7 @@ export function convertCompletionRequestToChatCompletionRequest(
         stop = completionRequest.stop;
     }
 
-    let needs_completion_in_name: boolean = completionRequest.model.startsWith("o1") || completionRequest.model.startsWith("o3");
+    let needs_completion_in_name: boolean = /^o\d/.test(completionRequest.model);
 
     let max_tokens: number | undefined;
     let max_completion_tokens: number | undefined;
