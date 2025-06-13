@@ -9,47 +9,18 @@ import type {ChatCompletionRequestMessage, CreateChatCompletionRequest, CreateCh
 
 // Values retrieved from https://platform.openai.com/docs/models/model-endpoint-compatibility on 2023-04-08
 
-// TODO: now that this is the default, this should be inverted so only known old models use the completions endpoint
-const KNOWN_CHAT_COMPLETION_MODELS = [
-    "gpt-4",
-    "gpt-4o",
-    "o1-mini",
-    "o1-preview",
-    "o1",
-    "o3",
-    "o3-pro",
-    "o3-mini",
-    "gpt-4-0314",
-    "gpt-4-32k",
-    "gpt-4-32k-0314",
-    "gpt-3.5-turbo",
-    "gpt-3.5-turbo-0301",
-] as const;
-export const KNOWN_CHAT_COMPLETION_MODELS_SET = new Set(KNOWN_CHAT_COMPLETION_MODELS);
-type KnownChatCompletionModel = typeof KNOWN_CHAT_COMPLETION_MODELS[number];
-
-export const INFERRED_CHAT_COMPLETION_MODEL_REGEX: RegExp = /^(gpt-3.5-turbo|gpt-4)/;
-
 const KNOWN_COMPLETION_MODELS = [
-    "text-davinci-003",
-    "text-davinci-002",
-    "text-curie-001",
-    "text-babbage-001",
-    "text-ada-001",
-    "davinci",
-    "curie",
-    "babbage",
-    "ada",
+    "davinci-002",
+    "babbage-002",
 ] as const;
 export const KNOWN_COMPLETION_MODELS_SET = new Set(KNOWN_COMPLETION_MODELS);
+type KnownCompletionModel = typeof KNOWN_COMPLETION_MODELS[number];
 
-export function isChatCompletionModel(model: string): "probably" | true | false {
-    if (KNOWN_CHAT_COMPLETION_MODELS_SET.has(model as KnownChatCompletionModel)) {
-        return true;
-    } else if (model.match(INFERRED_CHAT_COMPLETION_MODEL_REGEX)) {
-        return "probably";
-    } else {
+export function isChatCompletionModel(model: string): boolean {
+    if (KNOWN_COMPLETION_MODELS_SET.has(model as KnownCompletionModel)) {
         return false;
+    } else {
+        return true;
     }
 }
 
