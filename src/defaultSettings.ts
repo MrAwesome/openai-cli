@@ -9,7 +9,7 @@ export const DEFAULT_SUBCOMMAND_NAME = "openai-completion" as const;
 
 export const DEFAULT_OPENAI_REMOTE_USER = "remote_user" as const;
 
-const DEFAULT_FALLBACK_OPENAI_COMPLETION_MODEL = "o4-mini" as const;
+const DEFAULT_FALLBACK_OPENAI_COMPLETION_MODEL = "gpt-5-mini" as const;
 export const DEFAULT_OPENAI_COMPLETION_MODEL = process.env.DEFAULT_OPENAI_COMPLETION_MODEL || DEFAULT_FALLBACK_OPENAI_COMPLETION_MODEL;
 
 export const DEFAULT_LOCAL_ENDPOINT = "http://localhost:8080/v1" as const;
