@@ -46,8 +46,6 @@ describe("cliParser", () => {
         ${"repeat"}             | ${["--repeat", "3"]}              | ${{repeat: 3}}
         ${"prompt"}             | ${["--prompt", "hello world"]}    | ${{prompt: "hello world"}}
         ${"user"}               | ${["--user", "bob"]}              | ${{user: "bob"}}
-        ${"bestOf"}             | ${["--best-of", "3"]}             | ${{bestOf: 3}}
-        ${"echo"}               | ${["--echo", "true"]}             | ${{echo: true}}
         ${"stop"}               | ${["--stop", "foo"]}              | ${{stop: "foo"}}
         ${"system"}             | ${["--system", "foo"]}            | ${{system: "foo"}}
         ${"stream"}             | ${["--stream", "true"]}           | ${{stream: true}}

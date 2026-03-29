@@ -19,8 +19,7 @@ dotenv.config();
 // TODO: unit test that correct help output is shown for local vs. remote
 // TODO: debug --help for cli remote mode only showing help for top level
 // TODO: full unit test of options parsing through to what is sent to the API
-// TODO: aliases: babbage, ada, curie, davinci, codex, etc
-// TODO: automatically set max_tokens to near the max by estimating token length num and subtracting from known model max (is there a library for estimation?)
+// TODO: automatically set max completion tokens from model context limits when feasible
 // TODO: support for conversation mode in readline (option for Q./A. / other prefixes)
 // TODO: aliases/helpers for codex, etc
 // TODO: add dall-e command - handle --n
@@ -30,7 +29,7 @@ dotenv.config();
 // TODO: integrate with signal/sms bots
 // TODO: conversation mode (needs limits, clear way to indicate end of conversation)
 // TODO: commands: list_models
-// TODO: don't let user set max_tokens to more than the model allows
+// TODO: don't let user set --max-tokens above the model limit
 // TODO: interspersed -f and arguments/-p, for use in code generation
 // TODO: shortcuts for "write unit tests for" and "write a program that" (and maybe others)
 // TODO: in-place code replacement (e.g. "replace all calls to console.log with logger")
@@ -40,17 +39,6 @@ dotenv.config();
 //   [] Indicate conversations should be stored via a flag/arg?
 //   [] Live convo mode in the terminal/repl
 //   [] Live convo mode for chat?
-
-//// TODO: command to list all known models (including user's own models? or just what we know here?)
-//// TODO: command to check models all still exist / verify info
-//const KNOWN_MODELS = {
-//    "text-davinci-003": {max_tokens: 4000},
-//    "text-curie-001": {max_tokens: 2048},
-//    "text-babbage-001": {max_tokens: 2048},
-//    "text-ada-001": {max_tokens: 2048},
-//    "code-davinci-002": {max_tokens: 8000},
-//    "code-cushman-001": {max_tokens: 2048},
-//} as const;
 
 async function localRun() {
     // CLI_IS_REMOTE is just a way to test remote behavior for local runs.

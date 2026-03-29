@@ -9,7 +9,6 @@ import {
     ScriptSuccess,
 } from "../../types";
 import OpenAI from "openai";
-import type {Completion, CompletionCreateParamsNonStreaming} from "openai/resources/completions";
 import type {ChatCompletion} from "openai/resources/chat/completions";
 import {debugData, getFileContents} from "../../utils";
 import {zodErrorToMessage} from "../../utils";
@@ -25,7 +24,8 @@ import OpenAICommand from "../../OpenAICommand";
 import openaiCompletionCLIParser from "./cliParser";
 
 import type commander from "commander";
-import {isChatCompletionModel, convertCompletionRequestToChatCompletionRequest} from "./ChatCompletionTools";
+import {convertCompletionRequestToChatCompletionRequest} from "./ChatCompletionTools";
+import {choiceToTextOrError} from "./extractAssistantText";
 import {DEFAULT_LOCAL_ENDPOINT} from "../../defaultSettings";
 
 export default class OpenAICompletionCommand extends OpenAICommand<OpenAICompletionCLIOptions> {
@@ -34,7 +34,7 @@ export default class OpenAICompletionCommand extends OpenAICommand<OpenAIComplet
     static subCommandName = "openai-completion";
     static aliases = ["complete", "openai-complete", "completion"];
 
-    static description = "Generate text using OpenAI's Completion API";
+    static description = "Generate text using OpenAI's Chat Completions API";
     static showHelpOnEmptyArgsAndOptions = true;
 
     constructor(protected ctx: SubCommandContext) {
@@ -43,7 +43,6 @@ export default class OpenAICompletionCommand extends OpenAICommand<OpenAIComplet
         this.fetchAdditionalData = this.fetchAdditionalData.bind(this);
         this.verifyCLI = this.verifyCLI.bind(this);
         this.callAPI = this.callAPI.bind(this);
-        this.callCompletionAPI = this.callCompletionAPI.bind(this);
         this.callChatCompletionAPI = this.callChatCompletionAPI.bind(this);
     }
 
@@ -146,12 +145,12 @@ export default class OpenAICompletionCommand extends OpenAICommand<OpenAIComplet
         const apiOptions = convertOpenAICompletionCLIOptionsToAPIOptions(verifiedOpts, prompt);
         const {model} = apiOptions;
 
-        let output: string | KnownSafeRunError;
-        if (isChatCompletionModel(model)) {
-            output = await this.callChatCompletionAPI(client, apiOptions, apiKey, verifiedOpts.system);
-        } else {
-            output = await this.callCompletionAPI(client, apiOptions, apiKey);
-        }
+        const output = await this.callChatCompletionAPI(
+            client,
+            apiOptions,
+            apiKey,
+            verifiedOpts.system,
+        );
 
         if (output instanceof KnownSafeRunError) {
             return output;
@@ -174,50 +173,6 @@ export default class OpenAICompletionCommand extends OpenAICommand<OpenAIComplet
         };
 
         return success;
-    }
-
-    private async callCompletionAPI(
-        client: OpenAI,
-        apiOptions: OpenAICompletionAPIOptions,
-        apiKey: string,
-    ): Promise<string | KnownSafeRunError> {
-        const {topLevelCommandOpts} = this.ctx;
-        const {debug} = topLevelCommandOpts;
-
-        let completion: Completion;
-        const completionBody: CompletionCreateParamsNonStreaming = {
-            ...apiOptions,
-            prompt: apiOptions.prompt ?? "",
-            stream: false,
-        };
-        try {
-            completion = await client.completions.create(completionBody);
-        } catch (e: any) {
-            debug && (await debugData("openaiCompletionError", e));
-            const message = this.sanitizeAndFormatOpenAIAPIError(e, apiKey);
-            return new KnownSafeRunError(message);
-        }
-
-        debug && debugData("openaiCompletion", completion);
-
-        const completionChoices = completion.choices;
-
-        if (completionChoices.length === 0) {
-            return new KnownSafeRunError(
-                "[ERROR] No choices returned from the API."
-            );
-        }
-
-        let output = "";
-        if (completionChoices.length > 1) {
-            completionChoices.forEach((choice) => {
-                output += `${choice.text}\n`;
-            });
-        } else {
-            output = completionChoices[0].text ?? "";
-        }
-
-        return output;
     }
 
     private async callChatCompletionAPI(
@@ -255,11 +210,19 @@ export default class OpenAICompletionCommand extends OpenAICommand<OpenAIComplet
 
         let output = "";
         if (completionChoices.length > 1) {
-            completionChoices.forEach((choice) => {
-                output += `${choice.message?.content ?? ""}\n`;
-            });
+            for (const choice of completionChoices) {
+                const part = choiceToTextOrError(choice);
+                if (!part.ok) {
+                    return new KnownSafeRunError(part.error);
+                }
+                output += `${part.text}\n`;
+            }
         } else {
-            output = completionChoices[0].message?.content ?? "";
+            const part = choiceToTextOrError(completionChoices[0]);
+            if (!part.ok) {
+                return new KnownSafeRunError(part.error);
+            }
+            output = part.text;
         }
 
         return output;

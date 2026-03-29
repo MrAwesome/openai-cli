@@ -31,7 +31,7 @@ export default function openaiCompletionCLIParser(
         )
         .option(
             "-M, --max-tokens <maxTokens>",
-            `The max tokens to use *for the total completion, including the prompt and response*.`,
+            `Maximum completion tokens the model may generate (output only; reasoning-capable models share this budget with internal reasoning).`,
             myParseInt,
             d.maxTokens
         )
@@ -58,18 +58,6 @@ export default function openaiCompletionCLIParser(
                 "Shorthand for '-e local'. Overridden by '-e'.")
         .option("-p, --prompt <prompt>", `The prompt to use.`)
 
-        // Currently <unused>:
-        .option(
-            "-b, --best-of <bestOf>",
-            `The number of choices to generate and then choose from.`,
-            myParseInt,
-            d.bestOf
-        )
-        .option(
-            "-E, --echo",
-            `Echo the prompt back before the completion.`,
-            d.echo
-        )
         .option(
             "-L, --logit-bias <logitBias>",
             `The logit bias to use.`,
@@ -115,7 +103,7 @@ export default function openaiCompletionCLIParser(
         )
         .option(
             "-s, --system <system>",
-            "The 'system' instructions for chat completion models. This has no effect on other models, only chat models such as gpt-4 and gpt-3.5-turbo.",
+            "System instructions prepended to the chat (optional).",
             d.system
         )
 

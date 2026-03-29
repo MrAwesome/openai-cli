@@ -112,7 +112,7 @@ export interface CommandContext {
     // command: the command, such as "completion"
     command?: string;
 
-    // model: the model, such as "davinci"
+    // model: the model id sent to the API
     model?: string;
 
     // context: Should never be relied on for anything except debugging, as it may change or be different between commands.

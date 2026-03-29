@@ -8,12 +8,13 @@ dotenv.config();
     const client = new OpenAI({
         apiKey: process.env.OPENAI_API_KEY,
     });
-    const response = await client.completions.create({
-        model: "davinci-002",
-        prompt: "Say this is a test",
-        max_tokens: 7,
+    const model =
+        process.env.DEFAULT_OPENAI_COMPLETION_MODEL ?? "gpt-4o-mini";
+    const response = await client.chat.completions.create({
+        model,
+        messages: [{role: "user", content: "Say this is a test"}],
+        max_completion_tokens: 32,
         temperature: 0,
-        logprobs: 5,
     });
-    await debugData("testCompletion", response);
+    await debugData("testChatCompletion", response);
 })();

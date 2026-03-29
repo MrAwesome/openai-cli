@@ -1,6 +1,5 @@
 import OpenAI from "openai";
 import dotenv from "dotenv";
-import wtf from "wtfnode";
 
 dotenv.config();
 
@@ -12,16 +11,18 @@ async function main() {
     }
 
     const client = new OpenAI({apiKey});
+    const model =
+        process.env.DEFAULT_OPENAI_COMPLETION_MODEL ?? "gpt-4o-mini";
 
-    const stream = await client.completions.create({
-        model: "davinci-002",
-        prompt: "Count to 40: ",
+    const stream = await client.chat.completions.create({
+        model,
+        messages: [{role: "user", content: "Count to 40: "}],
         stream: true,
-        max_tokens: 1000,
+        max_completion_tokens: 1000,
     });
 
     for await (const chunk of stream) {
-        const text = chunk.choices[0]?.text;
+        const text = chunk.choices[0]?.delta?.content;
         if (text) {
             process.stdout.write(text);
         }
