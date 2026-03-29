@@ -8,8 +8,9 @@ import {
     FetchAdditionalDataError,
     ScriptSuccess,
 } from "../../types";
-import {AxiosResponse} from "axios";
-import {Configuration, CreateChatCompletionResponse, CreateCompletionResponse, OpenAIApi} from "openai";
+import OpenAI from "openai";
+import type {Completion, CompletionCreateParamsNonStreaming} from "openai/resources/completions";
+import type {ChatCompletion} from "openai/resources/chat/completions";
 import {debugData, getFileContents} from "../../utils";
 import {zodErrorToMessage} from "../../utils";
 import {
@@ -54,40 +55,41 @@ export default class OpenAICompletionCommand extends OpenAICommand<OpenAIComplet
             .command(this.subCommandName)
             .aliases(this.aliases)
             .description(this.description);
-        const fullcommand = openaiCompletionCLIParser(
+        return openaiCompletionCLIParser(
             basicCommand,
             scriptContext
         );
-
-        return fullcommand;
     }
 
-    // TODO: create integration tests
     async fetchAdditionalData(): Promise<Partial<OpenAICompletionCLIOptions> | FetchAdditionalDataError> {
         const {scriptContext} = this.ctx;
 
         if (!scriptContext.isRemote) {
             const optsDelta: Partial<OpenAICompletionCLIOptionsLOCAL> = {};
-            // If this is false, we're likely being passed something on STDIN
             if (!process.stdin.isTTY) {
                 let stdinText: string = "";
-                process.stdin.setEncoding('utf8');
+                process.stdin.setEncoding("utf8");
                 for await (const chunk of process.stdin) {
                     stdinText += chunk;
                 }
                 optsDelta.stdinText = stdinText;
             }
             return optsDelta;
-        } else {
-            return {};
         }
-
+        return {};
     }
 
     verifyCLI(optsDelta: Partial<OpenAICompletionCLIOptions>): OpenAICompletionCLIOptions | VerifyCLIError {
         const {unverifiedSubCommandOpts} = this.ctx;
 
-        const fullUnverifiedSubCommandOpts = {...unverifiedSubCommandOpts, ...optsDelta};
+        const merged: Record<string, unknown> = {
+            ...unverifiedSubCommandOpts,
+            ...optsDelta,
+        };
+        const fullUnverifiedSubCommandOpts =
+            merged.prompt != null && merged.promptFlag == null
+                ? {...merged, promptFlag: merged.prompt}
+                : merged;
 
         const openaiCompletionOptsOrErr =
             openaiCompletionCLIOptionsSchema.safeParse(
@@ -98,25 +100,20 @@ export default class OpenAICompletionCommand extends OpenAICommand<OpenAIComplet
                 zodErrorToMessage(openaiCompletionOptsOrErr.error)
             );
         }
-        const openaiCompletionCLIOpts = openaiCompletionOptsOrErr.data;
-
-        return openaiCompletionCLIOpts;
+        return openaiCompletionOptsOrErr.data;
     }
 
     async callAPI(
         verifiedOpts: OpenAICompletionCLIOptions
     ): Promise<ScriptReturn | KnownSafeRunError> {
-        // check if we're in CLI mode, and if so, set scriptContext.isCLI
         const {
             subCommandArgs,
             scriptContext,
         } = this.ctx;
 
-        // If 'promptFile' is set, read the file here and set 'promptFileContents' to the file contents
         const {promptFile} = verifiedOpts;
         let promptFileContents: string | undefined;
 
-        // These will only be truthy/present in local runs, by design.
         if (promptFile && "initialCwd" in scriptContext) {
             promptFileContents =
                 await getFileContents(scriptContext.initialCwd, promptFile);
@@ -136,27 +133,24 @@ export default class OpenAICompletionCommand extends OpenAICommand<OpenAIComplet
         }
         const apiKey = apiKeyOrErr;
 
-        let basePath = undefined;
+        let baseURL: string | undefined;
         if ("endpoint" in verifiedOpts) {
             const {endpoint} = verifiedOpts;
-            basePath = endpoint;
+            baseURL = endpoint;
         } else if ("local" in verifiedOpts && verifiedOpts.local) {
-            basePath = DEFAULT_LOCAL_ENDPOINT;
+            baseURL = DEFAULT_LOCAL_ENDPOINT;
         }
 
-        // NOTE: Despite the API options all being snake_case, the node client uses "apiKey"
-        const configuration = new Configuration({apiKey, basePath});
-        const openai = new OpenAIApi(configuration);
+        const client = new OpenAI({apiKey, baseURL});
 
-        // TODO: ensure these args are typed correctly
         const apiOptions = convertOpenAICompletionCLIOptionsToAPIOptions(verifiedOpts, prompt);
         const {model} = apiOptions;
 
         let output: string | KnownSafeRunError;
         if (isChatCompletionModel(model)) {
-            output = await this.callChatCompletionAPI(openai, apiOptions, apiKey, verifiedOpts.system);
+            output = await this.callChatCompletionAPI(client, apiOptions, apiKey, verifiedOpts.system);
         } else {
-            output = await this.callCompletionAPI(openai, apiOptions, apiKey);
+            output = await this.callCompletionAPI(client, apiOptions, apiKey);
         }
 
         if (output instanceof KnownSafeRunError) {
@@ -167,7 +161,6 @@ export default class OpenAICompletionCommand extends OpenAICommand<OpenAIComplet
             return new KnownSafeRunError("[ERROR] No text returned.");
         }
 
-        // TODO: check that completionResponse is safe to display remotely, or if it contains api key
         const success: ScriptSuccess = {
             status: "success",
             exitCode: 0,
@@ -184,45 +177,43 @@ export default class OpenAICompletionCommand extends OpenAICommand<OpenAIComplet
     }
 
     private async callCompletionAPI(
-        openai: OpenAIApi,
+        client: OpenAI,
         apiOptions: OpenAICompletionAPIOptions,
         apiKey: string,
     ): Promise<string | KnownSafeRunError> {
         const {topLevelCommandOpts} = this.ctx;
         const {debug} = topLevelCommandOpts;
 
-        let completionResponse: AxiosResponse<CreateCompletionResponse, any>;
+        let completion: Completion;
+        const completionBody: CompletionCreateParamsNonStreaming = {
+            ...apiOptions,
+            prompt: apiOptions.prompt ?? "",
+            stream: false,
+        };
         try {
-            completionResponse = await openai.createCompletion(apiOptions);
+            completion = await client.completions.create(completionBody);
         } catch (e: any) {
             debug && (await debugData("openaiCompletionError", e));
             const message = this.sanitizeAndFormatOpenAIAPIError(e, apiKey);
             return new KnownSafeRunError(message);
         }
 
-        debug && debugData("openaiCompletion", completionResponse);
+        debug && debugData("openaiCompletion", completion);
 
-        const completionChoices = completionResponse.data.choices;
+        const completionChoices = completion.choices;
 
-        // TODO: more generalized error handling
         if (completionChoices.length === 0) {
             return new KnownSafeRunError(
                 "[ERROR] No choices returned from the API."
             );
         }
 
-        // TODO: implement -x conditional trim() here
-        //const {trim} = verifiedOpts;
-
         let output = "";
         if (completionChoices.length > 1) {
-            completionChoices.forEach((choice, _i) => {
-                // Labeled numbered list:
-                //output += `${i + 1}. ${choice.text?.trim()}\n`;
+            completionChoices.forEach((choice) => {
                 output += `${choice.text}\n`;
             });
         } else {
-            // TODO: implement -x conditional trim() here
             output = completionChoices[0].text ?? "";
         }
 
@@ -230,7 +221,7 @@ export default class OpenAICompletionCommand extends OpenAICommand<OpenAIComplet
     }
 
     private async callChatCompletionAPI(
-        openai: OpenAIApi,
+        client: OpenAI,
         apiOptions: OpenAICompletionAPIOptions,
         apiKey: string,
         system?: string,
@@ -238,12 +229,14 @@ export default class OpenAICompletionCommand extends OpenAICommand<OpenAIComplet
         const {topLevelCommandOpts} = this.ctx;
         const {debug} = topLevelCommandOpts;
 
-        let completionResponse: AxiosResponse<CreateChatCompletionResponse, any>;
-
         const chatAPIOptions = convertCompletionRequestToChatCompletionRequest(apiOptions, system);
 
+        let completionResponse: ChatCompletion;
         try {
-            completionResponse = await openai.createChatCompletion(chatAPIOptions);
+            completionResponse = await client.chat.completions.create({
+                ...chatAPIOptions,
+                stream: false,
+            });
         } catch (e: any) {
             debug && (await debugData("openaiCompletionError", e));
             const message = this.sanitizeAndFormatOpenAIAPIError(e, apiKey);
@@ -252,27 +245,20 @@ export default class OpenAICompletionCommand extends OpenAICommand<OpenAIComplet
 
         debug && debugData("openaiCompletion", completionResponse);
 
-        const completionChoices = completionResponse.data.choices;
+        const completionChoices = completionResponse.choices;
 
-        // TODO: more generalized error handling
         if (completionChoices.length === 0) {
             return new KnownSafeRunError(
                 "[ERROR] No choices returned from the API."
             );
         }
 
-        // TODO: implement -x conditional trim() here
-        //const {trim} = verifiedOpts;
-
         let output = "";
         if (completionChoices.length > 1) {
-            completionChoices.forEach((choice, _i) => {
-                // Labeled numbered list:
-                //output += `${i + 1}. ${choice.text?.trim()}\n`;
+            completionChoices.forEach((choice) => {
                 output += `${choice.message?.content ?? ""}\n`;
             });
         } else {
-            // TODO: implement -x conditional trim() here
             output = completionChoices[0].message?.content ?? "";
         }
 

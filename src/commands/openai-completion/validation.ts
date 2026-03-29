@@ -4,7 +4,6 @@ import {
     DEFAULT_OPENAI_REMOTE_USER,
     DEFAULT_LOCAL_ENDPOINT,
 } from "../../defaultSettings";
-import {jsonSchema} from "../../utils";
 
 // The zod config for the openai completion command. This is specifically
 // for the CLI options, not the API options. We do the transformation from
@@ -25,7 +24,7 @@ export const openaiCompletionCLIOptionsREMOTESchema = z
         repeat: z.number().default(1),
         echo: z.boolean().default(false),
         stop: z.string().nullable().optional(),
-        logitBias: z.record(jsonSchema).nullable().optional(),
+        logitBias: z.record(z.string(), z.number()).nullable().optional(),
         bestOf: z.number().default(1),
         topP: z.number().default(1.0),
         frequencyPenalty: z.number().default(0.0),
@@ -60,8 +59,8 @@ export const openaiCompletionCLIOptionsLOCALSchema =
             stream: z.boolean().optional().default(false),
             promptFile: z.string().optional(),
             stdinText: z.string().optional(),
-            endpoint: z.preprocess((val, ctx) =>
-                val === "local" ? DEFAULT_LOCAL_ENDPOINT : val,
+            endpoint: z.preprocess(
+                (val) => (val === "local" ? DEFAULT_LOCAL_ENDPOINT : val),
                 z.string().url().optional()
             ),
             local: z.boolean().optional(),
@@ -98,7 +97,7 @@ const openAICompletionAPIOptionsSchema = z
         presence_penalty: z.number().optional(),
         frequency_penalty: z.number().optional(),
         best_of: z.number().optional(),
-        logit_bias: z.record(jsonSchema).nullable().optional(),
+        logit_bias: z.record(z.string(), z.number()).nullable().optional(),
         user: z.string().optional(),
 
         // Unused, as they don't add anything to the functionality of a CLI:

@@ -9,6 +9,7 @@ import {
     ScriptContext,
 } from "./types";
 import OpenAICompletionCommand from "./commands/openai-completion/OpenAICompletionCommand";
+import OpenAIImageCommand from "./commands/openai-image/OpenAIImageCommand";
 import {zodErrorToMessage} from "./utils";
 
 // TODO: add support for "aliased" commands, such as "byron" - possibly can call this recursively with the desired args? it's just hard because commander's local mode doesn't get passed the args directly, it goes and determines them from the command line (and will try to fail if it sees an unrecognized command). maybe commands can be registered, but with an action that just recursively calls this with the desired function/args?
@@ -45,6 +46,7 @@ export type TopLevelCLIFlags = z.infer<typeof cliFlagsSchema>;
 
 const subCommandConstructors: SubCommandConstructor<any>[] = [
     OpenAICompletionCommand,
+    OpenAIImageCommand,
 ];
 export default function parseCLI(
     scriptContext: ScriptContext,
@@ -169,7 +171,8 @@ export default function parseCLI(
 
     const subCommandArgs = subCmdCommanderContext.subCmdArgs;
     const cliParserSubCommand = subCmdCommanderContext.subCmd;
-    cliParserSubCommand.parse(subCommandArgs, {from: "user"});
+    // Options are already parsed on the subcommand during program.parse(); a second
+    // parse() with only positional args resets Commander 14+ option values to defaults.
     const unverifiedSubCommandOpts = cliParserSubCommand.opts();
 
     if (unverifiedSubCommandOpts.help) {

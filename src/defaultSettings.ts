@@ -1,7 +1,7 @@
 import dotenv from 'dotenv';
 dotenv.config();
 
-export const KNOWN_SUBCOMMAND_NAMES = ["openai-completion"] as const;
+export const KNOWN_SUBCOMMAND_NAMES = ["openai-completion", "openai-image"] as const;
 export type KnownSubCommandName = typeof KNOWN_SUBCOMMAND_NAMES[number];
 export const KNOWN_SUBCOMMAND_NAMES_SET = new Set(KNOWN_SUBCOMMAND_NAMES);
 
@@ -11,6 +11,10 @@ export const DEFAULT_OPENAI_REMOTE_USER = "remote_user" as const;
 
 const DEFAULT_FALLBACK_OPENAI_COMPLETION_MODEL = "gpt-5-mini" as const;
 export const DEFAULT_OPENAI_COMPLETION_MODEL = process.env.DEFAULT_OPENAI_COMPLETION_MODEL || DEFAULT_FALLBACK_OPENAI_COMPLETION_MODEL;
+
+const DEFAULT_FALLBACK_OPENAI_IMAGE_MODEL = "gpt-image-1.5" as const;
+export const DEFAULT_OPENAI_IMAGE_MODEL =
+    process.env.DEFAULT_OPENAI_IMAGE_MODEL || DEFAULT_FALLBACK_OPENAI_IMAGE_MODEL;
 
 export const DEFAULT_LOCAL_ENDPOINT = "http://localhost:8080/v1" as const;
 

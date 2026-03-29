@@ -1,4 +1,6 @@
 import {z} from "zod";
+import type {ZodError} from "zod";
+import type {$ZodIssue} from "zod/v4/core";
 import commander from "commander";
 import util from "util";
 import fs from "fs";
@@ -24,7 +26,7 @@ export function propsToSnakeCase<T>(obj: Record<string, T>): Record<string, T> {
 }
 
 export function zodSafeParseResultToValOrError<E extends Error, T>(
-    safeParseResult: z.SafeParseReturnType<any, T>,
+    safeParseResult: {success: true; data: T} | {success: false; error: ZodError},
     errConstructor: new (message: string) => E
 ): T | E {
     if (!safeParseResult.success) {
@@ -34,39 +36,34 @@ export function zodSafeParseResultToValOrError<E extends Error, T>(
     return safeParseResult.data;
 }
 
-export function zodErrorToMessage(error: z.ZodError, depth = 0, unionDepth = 0): string {
-    return error.issues
-        .map((i) => zodIssueToMessage(i, depth))
-        .join(`\n${"  ".repeat(depth)}`);
-}
-
-export function zodDefault<T extends z.ZodRawShape>(sc: z.ZodObject<T>, key: keyof T): ReturnType<T[keyof T]["_def"]["defaultValue"]> {
-    return sc.shape[key]._def.defaultValue();
+export function zodErrorToMessage(error: ZodError): string {
+    return error.issues.map((i) => formatZodIssue(i as $ZodIssue, 0)).join(`\n`);
 }
 
 function prefix(depth: number): string {
     return "  ".repeat(depth);
 }
 
-function zodIssueToMessage(issue: z.ZodIssue, depth = 0, unionDepth = 0): string {
-    if ("unionErrors" in issue) {
-        depth += 1;
-        unionDepth += 1;
-        let output = "\nUnion Error (expected one of the following): [\n";
-        output += prefix(depth);
-        output +=
-            issue.unionErrors
-                .map((e) => `{\n${prefix(depth)}`
-                     + zodErrorToMessage(e, depth, unionDepth)
-             + `\n${prefix(depth)}},`)
-                .join(`\n${prefix(depth)}`);
-        output += "\n]";
-        return output;
+function formatZodIssue(issue: $ZodIssue, depth: number): string {
+    if (issue.code === "invalid_union" && "errors" in issue && issue.errors.length > 0) {
+        const branches = issue.errors.map((branch: $ZodIssue[], idx: number) => {
+            const msgs = branch.map((i) => formatZodIssue(i, depth + 1)).join(`\n`);
+            return `${prefix(depth + 1)}Branch ${idx + 1}:\n${msgs}`;
+        });
+        return `${prefix(depth)}Union (no branch matched):\n${branches.join(`\n`)}`;
     }
-    if (unionDepth > 0) {
-        console.log("unionDepth > 0");
+    if (issue.code === "invalid_key" && "issues" in issue) {
+        const nested = issue.issues.map((i) => formatZodIssue(i, depth + 1)).join(`\n`);
+        const p = issue.path?.length ? issue.path.join(".") : "(key)";
+        return `${prefix(depth)}${p}: ${issue.message}\n${nested}`;
     }
-    return `${"  ".repeat(depth)} ${issue.path.join(".")}: ${issue.message}`;
+    if (issue.code === "invalid_element" && "issues" in issue) {
+        const nested = issue.issues.map((i) => formatZodIssue(i, depth + 1)).join(`\n`);
+        const p = issue.path?.length ? issue.path.join(".") : "(element)";
+        return `${prefix(depth)}${p}: ${issue.message}\n${nested}`;
+    }
+    const p = issue.path && issue.path.length > 0 ? issue.path.join(".") : "(root)";
+    return `${prefix(depth)}${p}: ${issue.message}`;
 }
 
 export function myParseInt(value: any, dummyPrevious: any) {
@@ -95,26 +92,28 @@ function stringifyWithCircularCheck(obj: any, space?: string | number): string {
     );
 }
 
-const literalSchema = z.union([z.string(), z.number(), z.boolean(), z.null()]);
-type Literal = z.infer<typeof literalSchema>;
-type Json = Literal | {[key: string]: Json} | Json[];
-export const jsonSchema: z.ZodType<Json> = z.lazy(() =>
-    z.union([literalSchema, z.array(jsonSchema), z.record(jsonSchema)])
+type Json = string | number | boolean | null | Json[] | {[key: string]: Json};
+export const jsonSchema: z.ZodType<Json> = z.lazy((): z.ZodType<Json> =>
+    z.union([
+        z.string(),
+        z.number(),
+        z.boolean(),
+        z.null(),
+        z.array(jsonSchema),
+        z.record(z.string(), jsonSchema),
+    ])
 );
 
 export async function debugData(label: string, data: any) {
     console.log("[DEBUG]:", {label, data});
-    // TODO: better location, not just /tmp (can be in a throwaway dir in the project)
     const debugDir = "debug/";
     await mkdir(debugDir, {recursive: true});
-    // TODO: more generalized error handling
     const filename = path.join(debugDir, `${label}.json`);
     await writeFile(filename, stringifyWithCircularCheck(data, 2));
     console.log(`[DEBUG] Debug output written to ${filename}`);
 }
 // </debugging>
 
-// TODO: more cli-user-friendly errors? currently just throws (although that contains plenty enough info)
 export async function getFileContents(
     initialCwd: string,
     relativeFilename: string,

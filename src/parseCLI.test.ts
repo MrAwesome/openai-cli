@@ -229,14 +229,15 @@ describe("testCLIParsing", () => {
         /// Mock process.exit so we can check the exit code
         let called = 0;
         jest.spyOn(process, "exit").mockImplementation(
-            (code?: number | undefined) => {
+            ((code?: string | number | null | undefined) => {
                 const expectedExitCode = checkType as number;
-                expect(code).toBe(expectedExitCode);
+                const numeric = code === undefined || code === null ? 0 : Number(code);
+                expect(numeric).toBe(expectedExitCode);
                 called += 1;
 
-                if (code === undefined) { code = 0; }
-                throw new ExpectedProcessExitError(code);
-            }
+                const exitCode = code === undefined || code === null ? 0 : Number(code);
+                throw new ExpectedProcessExitError(exitCode);
+            }) as typeof process.exit
         );
 
         // The parseCLI function should pass, and then pass the validator function checks
@@ -289,10 +290,10 @@ describe("testCLIParsing", () => {
 describe("help text", () => {
     beforeEach(() => {
         jest.spyOn(process, "exit").mockImplementation(
-            (code?: number | undefined) => {
-                if (code === undefined) { code = 0; }
-                throw new ExpectedProcessExitError(code);
-            }
+            ((code?: string | number | null | undefined) => {
+                const exitCode = code === undefined || code === null ? 0 : Number(code);
+                throw new ExpectedProcessExitError(exitCode);
+            }) as typeof process.exit
         );
     });
 

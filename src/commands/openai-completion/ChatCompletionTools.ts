@@ -1,13 +1,13 @@
-import type {ChatCompletionRequestMessage, CreateChatCompletionRequest, CreateChatCompletionRequestStop, CreateCompletionRequest} from "openai";
+import type {
+    ChatCompletionCreateParamsNonStreaming,
+    ChatCompletionMessageParam,
+} from "openai/resources/chat/completions";
+import type {OpenAICompletionAPIOptions} from "./validation";
 
 // TODO: Note in --help that echo and best_of? don't work for chat completion
 // TODO: add env var for default model
-// TODO: function for converting regular completion options to chat completion options
 // TODO: add --chat/--no-chat override
-// TODO: add --system/--instructions
 // TODO: add default system for chat completion
-
-// Values retrieved from https://platform.openai.com/docs/models/model-endpoint-compatibility on 2023-04-08
 
 const KNOWN_COMPLETION_MODELS = [
     "davinci-002",
@@ -19,62 +19,60 @@ type KnownCompletionModel = typeof KNOWN_COMPLETION_MODELS[number];
 export function isChatCompletionModel(model: string): boolean {
     if (KNOWN_COMPLETION_MODELS_SET.has(model as KnownCompletionModel)) {
         return false;
-    } else {
-        return true;
     }
+    return true;
 }
 
-// TODO: unit test
 export function convertCompletionRequestToChatCompletionRequest(
-    completionRequest: CreateCompletionRequest,
+    completionRequest: OpenAICompletionAPIOptions,
     system?: string,
-): CreateChatCompletionRequest {
-    const {prompt, ...rest} = completionRequest;
+): ChatCompletionCreateParamsNonStreaming {
+    const {
+        prompt,
+        best_of: _bestOf,
+        echo: _echo,
+        stream: _stream,
+        ...rest
+    } = completionRequest;
 
-    const messages: ChatCompletionRequestMessage[] = [];
+    const messages: ChatCompletionMessageParam[] = [];
     if (system) {
         messages.push({role: "system", content: system});
     }
 
-    // We're sure that prompt is a string here, because we've already validated it upstream
     messages.push({role: "user", content: prompt as string});
 
-    let stop: CreateChatCompletionRequestStop | undefined;
-    if (completionRequest.stop === null) {
+    let stop: ChatCompletionCreateParamsNonStreaming["stop"];
+    if (completionRequest.stop === null || completionRequest.stop === undefined) {
         stop = undefined;
     } else {
         stop = completionRequest.stop;
     }
 
-    let needs_completion_in_name: boolean = isChatCompletionModel(completionRequest.model);
+    const useMaxCompletionTokens = isChatCompletionModel(completionRequest.model);
 
-    let max_tokens: number | undefined;
-    let max_completion_tokens: number | undefined;
-    if (completionRequest.max_tokens === null || needs_completion_in_name) {
+    let max_tokens: number | null | undefined;
+    let max_completion_tokens: number | null | undefined;
+    if (completionRequest.max_tokens === null || completionRequest.max_tokens === undefined || useMaxCompletionTokens) {
         max_tokens = undefined;
     } else {
         max_tokens = completionRequest.max_tokens;
     }
 
-    delete rest.best_of;
-    delete rest.echo;
-
-    if (needs_completion_in_name) {
-        max_completion_tokens = max_tokens;
-        delete rest.max_tokens;
+    if (useMaxCompletionTokens) {
+        max_completion_tokens = completionRequest.max_tokens ?? undefined;
         return {
             ...rest,
-            // @ts-ignore
-            max_completion_tokens,
             messages,
             stop,
+            max_completion_tokens,
         };
     }
 
     return {
         ...rest,
-        max_tokens,
         messages,
         stop,
+        max_tokens,
     };
 }
