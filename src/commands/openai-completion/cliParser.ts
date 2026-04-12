@@ -6,6 +6,10 @@ import {myParseInt} from "../../utils";
 import {ScriptContext} from "../../types";
 import commander from "commander";
 
+function collectImagePath(value: string, previous: string[]): string[] {
+    return previous.concat([value]);
+}
+
 export default function openaiCompletionCLIParser(
     subCommand: commander.Command,
     scriptContext: ScriptContext
@@ -116,6 +120,12 @@ export default function openaiCompletionCLIParser(
         cmd.option(
             "-f, --prompt-file <promptFile>",
             `A file whose contents should be read and used as the OpenAI completion prompt. Mutually exclusive with --prompt or passing args as the prompt.`,
+        );
+        cmd.option(
+            "-i, --image <path>",
+            `Attach a local image to the user message (vision models). Repeat -i for multiple images. MIME type is detected from file contents.`,
+            collectImagePath,
+            [],
         );
     }
 

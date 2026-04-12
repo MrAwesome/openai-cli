@@ -57,6 +57,7 @@ export const openaiCompletionCLIOptionsLOCALSchema =
             stream: z.boolean().optional().default(false),
             promptFile: z.string().optional(),
             stdinText: z.string().optional(),
+            imagePaths: z.array(z.string()).default([]),
             endpoint: z.preprocess(
                 (val) => (val === "local" ? DEFAULT_LOCAL_ENDPOINT : val),
                 z.string().url().optional()

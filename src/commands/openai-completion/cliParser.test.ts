@@ -56,6 +56,8 @@ describe("cliParser", () => {
         ${"promptJoiner empty"} | ${["--prompt-joiner", ""]}        | ${{promptJoiner: "", joiner: true}}
         ${"no joiner"}          | ${["--no-joiner"]}                | ${{joiner: false}}
         ${"no trailingNewline"} | ${["--no-trailing-newline"]}      | ${{trailingNewline: false}}
+        ${"one image"}          | ${["--image", "a.png"]}           | ${{image: ["a.png"]}}
+        ${"two images"}         | ${["-i", "a.png", "-i", "b.jpg"]} | ${{image: ["a.png", "b.jpg"]}}
     `(
         "$name",
         ({
@@ -91,6 +93,7 @@ describe("cliParser", () => {
         ${"file disallowed"}    | ${true}  | ${["--prompt-file", "foo.txt"]}   | ${{commanderErrorCode: "commander.unknownOption"}}
         ${"fake arg"}           | ${true}  | ${["--fake-arg", "foo.txt"]}      | ${{commanderErrorCode: "commander.unknownOption"}}
         ${"fake arg"}           | ${false} | ${["--fake-arg", "foo.txt"]}      | ${{commanderErrorCode: "commander.unknownOption"}}
+        ${"image disallowed remote"} | ${true} | ${["--image", "x.png"]}      | ${{commanderErrorCode: "commander.unknownOption"}}
     `("$name", ({isRemote, args, shouldThrow}:
                 {isRemote: boolean, args: string[], shouldThrow: {commanderErrorCode?: string}}
                ) => {

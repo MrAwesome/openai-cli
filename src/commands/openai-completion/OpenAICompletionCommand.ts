@@ -9,8 +9,16 @@ import {
     ScriptSuccess,
 } from "../../types";
 import OpenAI from "openai";
-import type {ChatCompletion} from "openai/resources/chat/completions";
-import {debugData, getFileContents} from "../../utils";
+import type {
+    ChatCompletion,
+    ChatCompletionContentPart,
+} from "openai/resources/chat/completions";
+import {
+    debugData,
+    getFileContents,
+    inferImageMimeTypeFromMagicBytes,
+    readBinaryFile,
+} from "../../utils";
 import {zodErrorToMessage} from "../../utils";
 import {
     OpenAICompletionCLIOptions,
@@ -85,10 +93,19 @@ export default class OpenAICompletionCommand extends OpenAICommand<OpenAIComplet
             ...unverifiedSubCommandOpts,
             ...optsDelta,
         };
-        const fullUnverifiedSubCommandOpts =
-            merged.prompt != null && merged.promptFlag == null
-                ? {...merged, promptFlag: merged.prompt}
-                : merged;
+        let normalized = merged.prompt != null && merged.promptFlag == null
+            ? {...merged, promptFlag: merged.prompt}
+            : merged;
+        if ("image" in normalized) {
+            const ir = normalized.image;
+            normalized = {
+                ...normalized,
+                imagePaths: Array.isArray(ir) ? ir : [],
+            };
+            delete (normalized as Record<string, unknown>).image;
+        }
+
+        const fullUnverifiedSubCommandOpts = normalized;
 
         const openaiCompletionOptsOrErr =
             openaiCompletionCLIOptionsSchema.safeParse(
@@ -120,10 +137,47 @@ export default class OpenAICompletionCommand extends OpenAICommand<OpenAIComplet
 
         const prompt = concatenatePromptPieces(subCommandArgs, verifiedOpts, promptFileContents);
 
+        const imagePaths =
+            "imagePaths" in verifiedOpts ? verifiedOpts.imagePaths : [];
+
         if (prompt.length === 0) {
+            if (imagePaths.length > 0) {
+                return new KnownSafeRunError(
+                    "[ERROR] Provide prompt text when using --image."
+                );
+            }
             return new KnownSafeRunError(
                 "[ERROR] No prompt text was provided."
             );
+        }
+
+        let userContent: string | ChatCompletionContentPart[] | undefined;
+        if (imagePaths.length > 0) {
+            if (!("initialCwd" in scriptContext)) {
+                return new KnownSafeRunError(
+                    "[ERROR] --image requires a local run with a working directory."
+                );
+            }
+            const parts: ChatCompletionContentPart[] = [
+                {type: "text", text: prompt},
+            ];
+            for (const rel of imagePaths) {
+                const buf = await readBinaryFile(scriptContext.initialCwd, rel);
+                const mime = inferImageMimeTypeFromMagicBytes(buf);
+                if (mime === null) {
+                    return new KnownSafeRunError(
+                        `[ERROR] Unrecognized image format (by magic bytes): ${rel}`
+                    );
+                }
+                parts.push({
+                    type: "image_url",
+                    image_url: {
+                        url: `data:${mime};base64,${buf.toString("base64")}`,
+                        detail: "auto",
+                    },
+                });
+            }
+            userContent = parts;
         }
 
         const apiKeyOrErr = this.getAPIKey();
@@ -150,6 +204,7 @@ export default class OpenAICompletionCommand extends OpenAICommand<OpenAIComplet
             apiOptions,
             apiKey,
             verifiedOpts.system,
+            userContent,
         );
 
         if (output instanceof KnownSafeRunError) {
@@ -180,11 +235,16 @@ export default class OpenAICompletionCommand extends OpenAICommand<OpenAIComplet
         apiOptions: OpenAICompletionAPIOptions,
         apiKey: string,
         system?: string,
+        userContent?: string | ChatCompletionContentPart[],
     ): Promise<string | KnownSafeRunError> {
         const {topLevelCommandOpts} = this.ctx;
         const {debug} = topLevelCommandOpts;
 
-        const chatAPIOptions = convertCompletionRequestToChatCompletionRequest(apiOptions, system);
+        const chatAPIOptions = convertCompletionRequestToChatCompletionRequest(
+            apiOptions,
+            system,
+            userContent,
+        );
 
         let completionResponse: ChatCompletion;
         try {

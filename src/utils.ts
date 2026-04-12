@@ -114,16 +114,76 @@ export async function debugData(label: string, data: any) {
 }
 // </debugging>
 
-export async function getFileContents(
+export function resolvePathUnderInitialCwd(
     initialCwd: string,
     relativeFilename: string,
-): Promise<string> {
+): string {
     let prefix = "";
     if (path.parse(relativeFilename).root === "") {
         prefix = initialCwd;
     }
-    const filename = path.join(prefix, relativeFilename);
+    return path.join(prefix, relativeFilename);
+}
+
+export async function getFileContents(
+    initialCwd: string,
+    relativeFilename: string,
+): Promise<string> {
+    const filename = resolvePathUnderInitialCwd(initialCwd, relativeFilename);
     return await readFile(filename, "utf8");
+}
+
+/** Resolve path like getFileContents, but return raw bytes (for images). */
+export async function readBinaryFile(
+    initialCwd: string,
+    relativeFilename: string,
+): Promise<Buffer> {
+    const filename = resolvePathUnderInitialCwd(initialCwd, relativeFilename);
+    return await readFile(filename);
+}
+
+/**
+ * Best-effort image MIME type from file header. Returns null if unknown.
+ */
+export function inferImageMimeTypeFromMagicBytes(buf: Buffer): string | null {
+    if (buf.length >= 8) {
+        if (
+            buf[0] === 0x89 &&
+            buf[1] === 0x50 &&
+            buf[2] === 0x4e &&
+            buf[3] === 0x47 &&
+            buf[4] === 0x0d &&
+            buf[5] === 0x0a &&
+            buf[6] === 0x1a &&
+            buf[7] === 0x0a
+        ) {
+            return "image/png";
+        }
+    }
+    if (buf.length >= 3 && buf[0] === 0xff && buf[1] === 0xd8 && buf[2] === 0xff) {
+        return "image/jpeg";
+    }
+    if (
+        buf.length >= 6 &&
+        buf[0] === 0x47 &&
+        buf[1] === 0x49 &&
+        buf[2] === 0x46 &&
+        buf[3] === 0x38 &&
+        (buf[4] === 0x37 || buf[4] === 0x39)
+    ) {
+        return "image/gif";
+    }
+    if (buf.length >= 12) {
+        const riff = buf.subarray(0, 4).toString("ascii");
+        const webp = buf.subarray(8, 12).toString("ascii");
+        if (riff === "RIFF" && webp === "WEBP") {
+            return "image/webp";
+        }
+    }
+    if (buf.length >= 2 && buf[0] === 0x42 && buf[1] === 0x4d) {
+        return "image/bmp";
+    }
+    return null;
 }
 
 export function getUnixTimestamp(): number {
