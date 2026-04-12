@@ -28,7 +28,7 @@ export default function openaiImageCLIParser(
         )
         .option(
             "-s, --size <size>",
-            `Image size: auto, 1024x1024, 1536x1024 (landscape), or 1024x1536 (portrait).`,
+            `Image size: auto, square 1024x1024, 1536x1024, 1024x1536, or aliases landscape (1536x1024) / portrait (1024x1536).`,
             d.size
         )
         .option(

@@ -3,6 +3,7 @@ import {
     DEFAULT_LOCAL_ENDPOINT,
     DEFAULT_OPENAI_IMAGE_MODEL,
 } from "../../defaultSettings";
+import {gptImageSizeSchema} from "../openai-image/validation";
 
 const gptImageModelSchema = z.enum(["gpt-image-1.5", "gpt-image-1", "gpt-image-1-mini"]);
 
@@ -13,13 +14,6 @@ function resolvedDefaultImageModel(): z.infer<typeof gptImageModelSchema> {
     }
     return "gpt-image-1.5";
 }
-
-const gptImageSizeSchema = z.enum([
-    "auto",
-    "1024x1024",
-    "1536x1024",
-    "1024x1536",
-]);
 
 const outputFormatSchema = z.enum(["png", "jpeg", "webp"]);
 

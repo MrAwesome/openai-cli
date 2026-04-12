@@ -15,13 +15,26 @@ function resolvedDefaultImageModel(): z.infer<typeof gptImageModelSchema> {
     return "gpt-image-1.5";
 }
 
-/** Sizes supported for GPT Image models (Image API). */
-const gptImageSizeSchema = z.enum([
-    "auto",
-    "1024x1024",
-    "1536x1024",
-    "1024x1536",
-]);
+/** Map CLI-friendly aliases to API pixel dimensions (GPT Image models). */
+export function normalizeGptImageCliSize(val: unknown): unknown {
+    if (typeof val !== "string") {
+        return val;
+    }
+    switch (val.toLowerCase()) {
+        case "landscape":
+            return "1536x1024";
+        case "portrait":
+            return "1024x1536";
+        default:
+            return val;
+    }
+}
+
+/** Sizes supported for GPT Image models (Image API); landscape/portrait accepted as aliases. */
+export const gptImageSizeSchema = z.preprocess(
+    normalizeGptImageCliSize,
+    z.enum(["auto", "1024x1024", "1536x1024", "1024x1536"]),
+);
 
 const imageQualitySchema = z.enum(["auto", "low", "medium", "high"]);
 

@@ -1,7 +1,10 @@
 import openaiImageCLIParser from "./cliParser";
 import commander from "commander";
 import {ScriptContext} from "../../types";
-import {OpenAIImageCLIOptions} from "./validation";
+import {
+    OpenAIImageCLIOptions,
+    openaiImageCLIOptionsLOCALSchema,
+} from "./validation";
 import {makeCommanderSayTestName, shutUpCommander} from "../../testUtils";
 import {noop} from "../../utils";
 
@@ -39,6 +42,8 @@ describe("openai-image cliParser", () => {
         ${"repeat"}       | ${["--repeat", "3"]}              | ${{repeat: 3}}
         ${"model"}        | ${["--model", "gpt-image-1"]}     | ${{model: "gpt-image-1"}}
         ${"size"}         | ${["--size", "1536x1024"]}        | ${{size: "1536x1024"}}
+        ${"size landscape"} | ${["--size", "landscape"]}       | ${{size: "landscape"}}
+        ${"size portrait"}  | ${["-s", "portrait"]}            | ${{size: "portrait"}}
         ${"quality"}      | ${["--quality", "high"]}          | ${{quality: "high"}}
         ${"output format"}| ${["--output-format", "webp"]}    | ${{outputFormat: "webp"}}
         ${"output"}       | ${["--output", "out.png"]}        | ${{output: "out.png"}}
@@ -92,6 +97,19 @@ describe("openai-image cliParser", () => {
             }
         } else {
             parse();
+        }
+    });
+
+    it("maps landscape and portrait size aliases via zod", () => {
+        const land = openaiImageCLIOptionsLOCALSchema.safeParse({size: "landscape"});
+        expect(land.success).toBe(true);
+        if (land.success) {
+            expect(land.data.size).toBe("1536x1024");
+        }
+        const port = openaiImageCLIOptionsLOCALSchema.safeParse({size: "Portrait"});
+        expect(port.success).toBe(true);
+        if (port.success) {
+            expect(port.data.size).toBe("1024x1536");
         }
     });
 });

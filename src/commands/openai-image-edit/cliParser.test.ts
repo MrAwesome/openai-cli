@@ -1,4 +1,5 @@
 import openaiImageEditCLIParser from "./cliParser";
+import {openaiImageEditCLIOptionsSchema} from "./validation";
 import commander from "commander";
 import {ScriptContext} from "../../types";
 import {makeCommanderSayTestName, shutUpCommander} from "../../testUtils";
@@ -74,6 +75,17 @@ describe("openai-image-edit cliParser", () => {
             }
         } else {
             parse();
+        }
+    });
+
+    it("maps size aliases in edit zod schema", () => {
+        const r = openaiImageEditCLIOptionsSchema.safeParse({
+            imagePaths: ["a.png"],
+            size: "landscape",
+        });
+        expect(r.success).toBe(true);
+        if (r.success) {
+            expect(r.data.size).toBe("1536x1024");
         }
     });
 });
