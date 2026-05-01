@@ -48,6 +48,7 @@ describe("cliParser", () => {
         ${"user"}               | ${["--user", "bob"]}              | ${{user: "bob"}}
         ${"stop"}               | ${["--stop", "foo"]}              | ${{stop: "foo"}}
         ${"system"}             | ${["--system", "foo"]}            | ${{system: "foo"}}
+        ${"reasoning low"}      | ${["--reasoning", "low"]}         | ${{reasoning: "low"}}
         ${"stream"}             | ${["--stream", "true"]}           | ${{stream: true}}
         ${"topP"}               | ${["--top-p", "0.9"]}             | ${{topP: 0.9}}
         ${"promptSuffix"}       | ${["--prompt-suffix", "!"]}       | ${{promptSuffix: "!"}}

@@ -8,6 +8,18 @@ import {
     normalizeProvider,
 } from "../../defaultSettings";
 
+/** Matches OpenAI Chat Completions `reasoning_effort` and Gemini OpenAI-compat mapping. */
+export const REASONING_EFFORT_VALUES = [
+    "none",
+    "minimal",
+    "low",
+    "medium",
+    "high",
+    "xhigh",
+] as const;
+
+export type ReasoningEffortCLI = (typeof REASONING_EFFORT_VALUES)[number];
+
 // The zod config for the openai completion command. This is specifically
 // for the CLI options, not the API options. We do the transformation from
 // this object to the API object below, for openaiCompletionAPIOptionsSchema.
@@ -37,6 +49,8 @@ const openaiCompletionCLIOptionsSchemaBase = z
         promptPrefix: z.string().optional(),
         suffix: z.string().nullable().optional(),
         system: z.string().optional(),
+        /** OpenAI: reasoning_effort. Gemini (OpenAI compat): maps to thinking_level / thinking_budget. */
+        reasoning: z.enum(REASONING_EFFORT_VALUES).optional(),
         trailingNewline: z.boolean().default(true),
         joiner: z.boolean().default(false),
         trim: z.boolean().default(true),
@@ -111,6 +125,7 @@ const openAICompletionAPIOptionsSchema = z
         frequency_penalty: z.number().optional(),
         logit_bias: z.record(z.string(), z.number()).nullable().optional(),
         user: z.string().optional(),
+        reasoning_effort: z.enum(REASONING_EFFORT_VALUES).optional(),
 
         // Unused, as they don't add anything to the functionality of a CLI:
         //logprobs: z.number().optional(),
@@ -139,6 +154,10 @@ export function convertOpenAICompletionCLIOptionsToAPIOptions(
         logit_bias: opts.logitBias,
         user: opts.user,
     };
+
+    if (opts.reasoning !== undefined) {
+        output.reasoning_effort = opts.reasoning;
+    }
 
     return output;
 }

@@ -1,6 +1,7 @@
 import {
     openaiCompletionCLIOptionsLOCALSchemaDefaults,
     openaiCompletionCLIOptionsREMOTESchemaDefaults,
+    REASONING_EFFORT_VALUES,
 } from "./validation";
 import {myParseInt} from "../../utils";
 import {ScriptContext} from "../../types";
@@ -114,6 +115,12 @@ export default function openaiCompletionCLIParser(
             "-s, --system <system>",
             "System instructions prepended to the chat (optional).",
             d.system
+        )
+        .addOption(
+            new commander.Option(
+                "--reasoning <effort>",
+                `Reasoning effort (OpenAI Chat Completions reasoning_effort; Gemini OpenAI endpoint maps to thinking). One of: ${REASONING_EFFORT_VALUES.join(", ")}.`
+            ).choices([...REASONING_EFFORT_VALUES])
         )
 
         // Unused, as they don't add anything to the functionality of a CLI:
