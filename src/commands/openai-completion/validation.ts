@@ -1,8 +1,11 @@
 import {z} from "zod";
 import {
-    DEFAULT_OPENAI_COMPLETION_MODEL,
-    DEFAULT_OPENAI_REMOTE_USER,
+    DEFAULT_PROVIDER,
+    DEFAULT_REMOTE_USER,
     DEFAULT_LOCAL_ENDPOINT,
+    defaultCompletionModelForProvider,
+    KNOWN_PROVIDERS,
+    normalizeProvider,
 } from "../../defaultSettings";
 
 // The zod config for the openai completion command. This is specifically
@@ -16,9 +19,10 @@ import {
 // because the OpenAI API/library will do that for us.
 //
 // NOTE: these are camelCase because that's what commander will generate
-export const openaiCompletionCLIOptionsREMOTESchema = z
+const openaiCompletionCLIOptionsSchemaBase = z
     .object({
-        model: z.string().default(DEFAULT_OPENAI_COMPLETION_MODEL),
+        provider: z.enum(KNOWN_PROVIDERS).default(DEFAULT_PROVIDER),
+        model: z.string().optional(),
         temperature: z.number().default(1),
         maxTokens: z.number().default(16384),
         repeat: z.number().default(1),
@@ -39,7 +43,7 @@ export const openaiCompletionCLIOptionsREMOTESchema = z
 
         // <FORCED FALSE UNSAFE>
         // TODO: have -u be a part of scriptcontext - unix user, or arg passed in by calling library
-        user: z.literal(DEFAULT_OPENAI_REMOTE_USER).default(DEFAULT_OPENAI_REMOTE_USER),
+        user: z.literal(DEFAULT_REMOTE_USER).default(DEFAULT_REMOTE_USER),
         stream: z.literal(false).default(false),
         promptFile: z.undefined().optional(),
         // </FORCED FALSE UNSAFE>
@@ -49,8 +53,15 @@ export const openaiCompletionCLIOptionsREMOTESchema = z
     })
     .strip();
 
+export const openaiCompletionCLIOptionsREMOTESchema =
+    openaiCompletionCLIOptionsSchemaBase
+        .transform((opts) => ({
+            ...opts,
+            model: opts.model ?? defaultCompletionModelForProvider(normalizeProvider(opts.provider)),
+        }));
+
 export const openaiCompletionCLIOptionsLOCALSchema =
-    openaiCompletionCLIOptionsREMOTESchema
+    openaiCompletionCLIOptionsSchemaBase
         .extend({
             _local_UNSAFE: z.literal(true).default(true),
             user: z.string().optional().default(process.env.USER ?? "unknown-local-script-user"),
@@ -64,7 +75,11 @@ export const openaiCompletionCLIOptionsLOCALSchema =
             ),
             local: z.boolean().optional(),
         })
-        .strip();
+        .strip()
+        .transform((opts) => ({
+            ...opts,
+            model: opts.model ?? defaultCompletionModelForProvider(normalizeProvider(opts.provider)),
+        }));
 
 export type OpenAICompletionCLIOptionsLOCAL = z.infer<typeof openaiCompletionCLIOptionsLOCALSchema>;
 

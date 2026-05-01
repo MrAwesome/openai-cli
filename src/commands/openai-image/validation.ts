@@ -1,19 +1,12 @@
 import {z} from "zod";
 import {
-    DEFAULT_OPENAI_REMOTE_USER,
+    DEFAULT_PROVIDER,
+    DEFAULT_REMOTE_USER,
     DEFAULT_LOCAL_ENDPOINT,
-    DEFAULT_OPENAI_IMAGE_MODEL,
+    defaultImageModelForProvider,
+    KNOWN_PROVIDERS,
+    normalizeProvider,
 } from "../../defaultSettings";
-
-const gptImageModelSchema = z.enum(["gpt-image-1.5", "gpt-image-1", "gpt-image-1-mini"]);
-
-function resolvedDefaultImageModel(): z.infer<typeof gptImageModelSchema> {
-    const m = DEFAULT_OPENAI_IMAGE_MODEL;
-    if (m === "gpt-image-1.5" || m === "gpt-image-1" || m === "gpt-image-1-mini") {
-        return m;
-    }
-    return "gpt-image-1.5";
-}
 
 /** Map CLI-friendly aliases to API pixel dimensions (GPT Image models). */
 export function normalizeGptImageCliSize(val: unknown): unknown {
@@ -40,9 +33,10 @@ const imageQualitySchema = z.enum(["auto", "low", "medium", "high"]);
 
 const outputFormatSchema = z.enum(["png", "jpeg", "webp"]);
 
-export const openaiImageCLIOptionsREMOTESchema = z
+const openaiImageCLIOptionsSchemaBase = z
     .object({
-        model: gptImageModelSchema.default(resolvedDefaultImageModel()),
+        provider: z.enum(KNOWN_PROVIDERS).default(DEFAULT_PROVIDER),
+        model: z.string().optional(),
         repeat: z.number().int().min(1).max(10).default(1),
         size: gptImageSizeSchema.default("1024x1024"),
         quality: imageQualitySchema.default("auto"),
@@ -55,13 +49,20 @@ export const openaiImageCLIOptionsREMOTESchema = z
         joiner: z.boolean().default(false),
         trailingNewline: z.boolean().default(false),
 
-        user: z.literal(DEFAULT_OPENAI_REMOTE_USER).default(DEFAULT_OPENAI_REMOTE_USER),
+        user: z.literal(DEFAULT_REMOTE_USER).default(DEFAULT_REMOTE_USER),
         promptFile: z.undefined().optional(),
     })
     .strip();
 
+export const openaiImageCLIOptionsREMOTESchema =
+    openaiImageCLIOptionsSchemaBase
+        .transform((opts) => ({
+            ...opts,
+            model: opts.model ?? defaultImageModelForProvider(normalizeProvider(opts.provider)),
+        }));
+
 export const openaiImageCLIOptionsLOCALSchema =
-    openaiImageCLIOptionsREMOTESchema
+    openaiImageCLIOptionsSchemaBase
         .extend({
             _local_UNSAFE: z.literal(true).default(true),
             user: z.string().optional().default(process.env.USER ?? "unknown-local-script-user"),
@@ -73,7 +74,11 @@ export const openaiImageCLIOptionsLOCALSchema =
             ),
             local: z.boolean().optional(),
         })
-        .strip();
+        .strip()
+        .transform((opts) => ({
+            ...opts,
+            model: opts.model ?? defaultImageModelForProvider(normalizeProvider(opts.provider)),
+        }));
 
 export type OpenAIImageCLIOptionsLOCAL = z.infer<typeof openaiImageCLIOptionsLOCALSchema>;
 

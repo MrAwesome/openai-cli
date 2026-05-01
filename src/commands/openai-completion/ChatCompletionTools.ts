@@ -4,11 +4,13 @@ import type {
     ChatCompletionMessageParam,
 } from "openai/resources/chat/completions";
 import type {OpenAICompletionAPIOptions} from "./validation";
+import type {KnownProvider} from "../../defaultSettings";
 
 export function convertCompletionRequestToChatCompletionRequest(
     completionRequest: OpenAICompletionAPIOptions,
     system?: string,
     userContent?: string | ChatCompletionContentPart[],
+    provider: KnownProvider = "openai",
 ): ChatCompletionCreateParamsNonStreaming {
     const {
         prompt,
@@ -33,10 +35,34 @@ export function convertCompletionRequestToChatCompletionRequest(
         stop = completionRequest.stop;
     }
 
-    return {
+    const request: ChatCompletionCreateParamsNonStreaming = {
         ...rest,
         messages,
         stop,
         max_completion_tokens,
     };
+
+    // Gemini's OpenAI-compatible chat endpoint can reject some OpenAI-specific fields
+    // with a generic "400 status code (no body)". Trim those fields for compatibility.
+    if (provider === "gemini") {
+        const geminiRequest = request as ChatCompletionCreateParamsNonStreaming & {
+            max_tokens?: number;
+            max_completion_tokens?: number;
+            user?: string;
+            presence_penalty?: number;
+            frequency_penalty?: number;
+            logit_bias?: Record<string, number> | null;
+        };
+
+        if (geminiRequest.max_completion_tokens !== undefined) {
+            geminiRequest.max_tokens = geminiRequest.max_completion_tokens;
+        }
+        delete geminiRequest.max_completion_tokens;
+        delete geminiRequest.user;
+        delete geminiRequest.presence_penalty;
+        delete geminiRequest.frequency_penalty;
+        delete geminiRequest.logit_bias;
+    }
+
+    return request;
 }

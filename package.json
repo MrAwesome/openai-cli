@@ -27,6 +27,7 @@
   },
   "scripts": {
     "test": "jest",
+    "test:e2e": "jest -c jest.e2e.config.js --runInBand",
     "build": "tsc"
   }
 }

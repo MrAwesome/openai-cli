@@ -19,7 +19,6 @@ import concatenateImageEditPromptPieces from "./concatenatePromptPieces";
 import OpenAICommand from "../../OpenAICommand";
 import openaiImageEditCLIParser from "./cliParser";
 import {deriveImageOutputPaths} from "../openai-image/outputPaths";
-import {DEFAULT_LOCAL_ENDPOINT} from "../../defaultSettings";
 
 import type commander from "commander";
 import {readFile} from "node:fs/promises";
@@ -178,19 +177,18 @@ export default class OpenAIImageEditCommand extends OpenAICommand<OpenAIImageEdi
             );
         }
 
-        const apiKeyOrErr = this.getAPIKey();
+        const provider = this.getProvider(verifiedOpts);
+        const apiKeyOrErr = this.getAPIKey(provider);
         if (apiKeyOrErr instanceof APIKeyNotSetError) {
             return apiKeyOrErr;
         }
         const apiKey = apiKeyOrErr;
 
-        let baseURL: string | undefined;
-        if ("endpoint" in verifiedOpts) {
-            const {endpoint} = verifiedOpts;
-            baseURL = endpoint;
-        } else if ("local" in verifiedOpts && verifiedOpts.local) {
-            baseURL = DEFAULT_LOCAL_ENDPOINT;
-        }
+        const baseURL = this.resolveBaseURL(
+            provider,
+            "endpoint" in verifiedOpts ? verifiedOpts.endpoint : undefined,
+            "local" in verifiedOpts ? verifiedOpts.local : undefined,
+        );
 
         const {topLevelCommandOpts} = this.ctx;
         const {debug} = topLevelCommandOpts;
@@ -315,7 +313,7 @@ export default class OpenAIImageEditCommand extends OpenAICommand<OpenAIImageEdi
             exitCode: 0,
             commandContext: {
                 className: OpenAIImageEditCommand.className,
-                service: "openai",
+                service: provider,
                 command: "image-edit",
                 model: verifiedOpts.model,
             },

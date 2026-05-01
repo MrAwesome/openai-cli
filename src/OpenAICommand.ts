@@ -1,26 +1,50 @@
-import {OPENAI_API_KEY_NOT_SET_ERROR} from "./defaultSettings";
+import {
+    apiKeyNotSetErrorForProvider,
+    defaultEndpointForProvider,
+    normalizeProvider,
+    type KnownProvider,
+    providerAPIKeyEnvVar,
+} from "./defaultSettings";
 import {APIKeyNotSetError, SubCommand} from "./types";
 import {APIError} from "openai";
 import dotenv from "dotenv";
 
 dotenv.config();
 
-class OpenAIAPIKeyNotSetError extends APIKeyNotSetError {
-    constructor() {
-        super(OPENAI_API_KEY_NOT_SET_ERROR);
+class ProviderAPIKeyNotSetError extends APIKeyNotSetError {
+    constructor(provider: KnownProvider) {
+        super(apiKeyNotSetErrorForProvider(provider));
     }
 }
 
 export default abstract class OpenAICommand<Opts> extends SubCommand<Opts> {
-    protected getAPIKey(): string | APIKeyNotSetError {
-        const apiKey = process.env.OPENAI_API_KEY;
+    protected getProvider(verifiedOpts: {provider?: string}): KnownProvider {
+        return normalizeProvider(verifiedOpts.provider);
+    }
+
+    protected getAPIKey(provider: KnownProvider): string | APIKeyNotSetError {
+        const apiKey = process.env[providerAPIKeyEnvVar(provider)];
         if (apiKey === undefined) {
-            return new OpenAIAPIKeyNotSetError();
+            return new ProviderAPIKeyNotSetError(provider);
         }
         return apiKey;
     }
 
-    protected sanitizeAndFormatOpenAIAPIError(e: any, openaiAPIKey: string): string {
+    protected resolveBaseURL(
+        provider: KnownProvider,
+        endpoint: string | undefined,
+        local: boolean | undefined,
+    ): string | undefined {
+        if (endpoint !== undefined) {
+            return endpoint;
+        }
+        if (local) {
+            return "http://localhost:8080/v1";
+        }
+        return defaultEndpointForProvider(provider);
+    }
+
+    protected sanitizeAndFormatOpenAIAPIError(e: any, apiKey: string): string {
         const {scriptContext} = this.ctx;
 
         let message: string;
@@ -32,8 +56,8 @@ export default abstract class OpenAICommand<Opts> extends SubCommand<Opts> {
             message = e?.message ?? String(e);
         }
 
-        if (scriptContext.isRemote && openaiAPIKey !== undefined) {
-            if (message.includes(openaiAPIKey) || message.toLowerCase().includes("api key")) {
+        if (scriptContext.isRemote && apiKey !== undefined) {
+            if (message.includes(apiKey) || message.toLowerCase().includes("api key")) {
                 console.error("[ERROR] API key was included in error message! Censoring. Error:", e.message, e);
 
                 message = `[ERROR] Something is wrong with the API key. Please contact the server administrator and let them know: ${scriptContext.serverAdminContactInfo}`;

@@ -1,19 +1,12 @@
 import {z} from "zod";
 import {
+    DEFAULT_PROVIDER,
     DEFAULT_LOCAL_ENDPOINT,
-    DEFAULT_OPENAI_IMAGE_MODEL,
+    defaultImageModelForProvider,
+    KNOWN_PROVIDERS,
+    normalizeProvider,
 } from "../../defaultSettings";
 import {gptImageSizeSchema} from "../openai-image/validation";
-
-const gptImageModelSchema = z.enum(["gpt-image-1.5", "gpt-image-1", "gpt-image-1-mini"]);
-
-function resolvedDefaultImageModel(): z.infer<typeof gptImageModelSchema> {
-    const m = DEFAULT_OPENAI_IMAGE_MODEL;
-    if (m === "gpt-image-1.5" || m === "gpt-image-1" || m === "gpt-image-1-mini") {
-        return m;
-    }
-    return "gpt-image-1.5";
-}
 
 const outputFormatSchema = z.enum(["png", "jpeg", "webp"]);
 
@@ -22,7 +15,8 @@ const inputFidelitySchema = z.enum(["high", "low"]);
 export const openaiImageEditCLIOptionsSchema = z
     .object({
         _local_UNSAFE: z.literal(true).default(true),
-        model: gptImageModelSchema.default(resolvedDefaultImageModel()),
+        provider: z.enum(KNOWN_PROVIDERS).default(DEFAULT_PROVIDER),
+        model: z.string().optional(),
         repeat: z.number().int().min(1).max(10).default(1),
         size: gptImageSizeSchema.default("1024x1024"),
         outputFormat: outputFormatSchema.default("png"),
@@ -48,6 +42,10 @@ export const openaiImageEditCLIOptionsSchema = z
         inputFidelity: inputFidelitySchema.optional(),
     })
     .strip()
+    .transform((opts) => ({
+        ...opts,
+        model: opts.model ?? defaultImageModelForProvider(normalizeProvider(opts.provider)),
+    }))
     .superRefine((data, ctx) => {
         if (data.model === "gpt-image-1-mini" && data.inputFidelity !== undefined) {
             ctx.addIssue({

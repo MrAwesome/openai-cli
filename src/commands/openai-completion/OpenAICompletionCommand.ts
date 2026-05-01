@@ -34,7 +34,8 @@ import openaiCompletionCLIParser from "./cliParser";
 import type commander from "commander";
 import {convertCompletionRequestToChatCompletionRequest} from "./ChatCompletionTools";
 import {choiceToTextOrError} from "./extractAssistantText";
-import {DEFAULT_LOCAL_ENDPOINT} from "../../defaultSettings";
+import type {KnownProvider} from "../../defaultSettings";
+import {GEMINI_COMPLETION_FALLBACK_MODELS} from "../../defaultSettings";
 
 export default class OpenAICompletionCommand extends OpenAICommand<OpenAICompletionCLIOptions> {
     static className = "OpenAICompletionCommand";
@@ -180,32 +181,52 @@ export default class OpenAICompletionCommand extends OpenAICommand<OpenAIComplet
             userContent = parts;
         }
 
-        const apiKeyOrErr = this.getAPIKey();
+        const provider = this.getProvider(verifiedOpts);
+        const apiKeyOrErr = this.getAPIKey(provider);
         if (apiKeyOrErr instanceof APIKeyNotSetError) {
             return apiKeyOrErr;
         }
         const apiKey = apiKeyOrErr;
 
-        let baseURL: string | undefined;
-        if ("endpoint" in verifiedOpts) {
-            const {endpoint} = verifiedOpts;
-            baseURL = endpoint;
-        } else if ("local" in verifiedOpts && verifiedOpts.local) {
-            baseURL = DEFAULT_LOCAL_ENDPOINT;
-        }
+        const baseURL = this.resolveBaseURL(
+            provider,
+            "endpoint" in verifiedOpts ? verifiedOpts.endpoint : undefined,
+            "local" in verifiedOpts ? verifiedOpts.local : undefined,
+        );
 
         const client = new OpenAI({apiKey, baseURL});
 
         const apiOptions = convertOpenAICompletionCLIOptionsToAPIOptions(verifiedOpts, prompt);
-        const {model} = apiOptions;
+        const modelWasExplicitlyProvided = this.ctx.unverifiedSubCommandOpts.model !== undefined;
+        const modelCandidates = provider === "gemini" && !modelWasExplicitlyProvided
+            ? Array.from(new Set([
+                apiOptions.model,
+                ...GEMINI_COMPLETION_FALLBACK_MODELS,
+            ]))
+            : [apiOptions.model];
 
-        const output = await this.callChatCompletionAPI(
-            client,
-            apiOptions,
-            apiKey,
-            verifiedOpts.system,
-            userContent,
-        );
+        let output: string | KnownSafeRunError = new KnownSafeRunError("[ERROR] No completion model candidates were available.");
+        let model = apiOptions.model;
+        for (const candidateModel of modelCandidates) {
+            const apiOptionsForModel: OpenAICompletionAPIOptions = {
+                ...apiOptions,
+                model: candidateModel,
+            };
+            const out = await this.callChatCompletionAPI(
+                client,
+                apiOptionsForModel,
+                apiKey,
+                provider,
+                verifiedOpts.system,
+                userContent,
+            );
+            if (!(out instanceof KnownSafeRunError)) {
+                output = out;
+                model = candidateModel;
+                break;
+            }
+            output = out;
+        }
 
         if (output instanceof KnownSafeRunError) {
             return output;
@@ -220,7 +241,7 @@ export default class OpenAICompletionCommand extends OpenAICommand<OpenAIComplet
             exitCode: 0,
             commandContext: {
                 className: OpenAICompletionCommand.className,
-                service: "openai",
+                service: provider,
                 command: "completion",
                 model,
             },
@@ -234,6 +255,7 @@ export default class OpenAICompletionCommand extends OpenAICommand<OpenAIComplet
         client: OpenAI,
         apiOptions: OpenAICompletionAPIOptions,
         apiKey: string,
+        provider: KnownProvider,
         system?: string,
         userContent?: string | ChatCompletionContentPart[],
     ): Promise<string | KnownSafeRunError> {
@@ -244,6 +266,7 @@ export default class OpenAICompletionCommand extends OpenAICommand<OpenAIComplet
             apiOptions,
             system,
             userContent,
+            provider,
         );
 
         let completionResponse: ChatCompletion;

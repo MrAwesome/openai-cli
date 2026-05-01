@@ -20,6 +20,11 @@ export default function openaiCompletionCLIParser(
 
     // TODO: replace the "The <thing> to use" with the actual description from the openai docs.
     const cmd = subCommand
+        .option(
+            "--provider <provider>",
+            `Model provider to use (openai or gemini).`,
+            d.provider
+        )
         // TODO: explain frequency/presence
         .option(
             "-F, --frequency-penalty <frequencyPenalty>",
@@ -39,7 +44,7 @@ export default function openaiCompletionCLIParser(
             myParseInt,
             d.maxTokens
         )
-        .requiredOption("-m, --model <model>", `The model to use.`,
+        .option("-m, --model <model>", `The model to use.`,
             d.model
         )
         .option(

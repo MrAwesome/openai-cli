@@ -21,7 +21,6 @@ import concatenateImagePromptPieces from "./concatenatePromptPieces";
 import OpenAICommand from "../../OpenAICommand";
 import openaiImageCLIParser from "./cliParser";
 import {deriveImageOutputPaths} from "./outputPaths";
-import {DEFAULT_LOCAL_ENDPOINT} from "../../defaultSettings";
 
 import type commander from "commander";
 import fs from "fs";
@@ -138,19 +137,18 @@ export default class OpenAIImageCommand extends OpenAICommand<OpenAIImageCLIOpti
             );
         }
 
-        const apiKeyOrErr = this.getAPIKey();
+        const provider = this.getProvider(verifiedOpts);
+        const apiKeyOrErr = this.getAPIKey(provider);
         if (apiKeyOrErr instanceof APIKeyNotSetError) {
             return apiKeyOrErr;
         }
         const apiKey = apiKeyOrErr;
 
-        let baseURL: string | undefined;
-        if ("endpoint" in verifiedOpts) {
-            const {endpoint} = verifiedOpts;
-            baseURL = endpoint;
-        } else if ("local" in verifiedOpts && verifiedOpts.local) {
-            baseURL = DEFAULT_LOCAL_ENDPOINT;
-        }
+        const baseURL = this.resolveBaseURL(
+            provider,
+            "endpoint" in verifiedOpts ? verifiedOpts.endpoint : undefined,
+            "local" in verifiedOpts ? verifiedOpts.local : undefined,
+        );
 
         const client = new OpenAI({apiKey, baseURL});
 
@@ -223,7 +221,7 @@ export default class OpenAIImageCommand extends OpenAICommand<OpenAIImageCLIOpti
             exitCode: 0,
             commandContext: {
                 className: OpenAIImageCommand.className,
-                service: "openai",
+                service: provider,
                 command: "image",
                 model: verifiedOpts.model,
             },

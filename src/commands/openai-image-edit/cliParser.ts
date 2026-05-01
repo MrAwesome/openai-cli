@@ -20,8 +20,13 @@ export default function openaiImageEditCLIParser(
 
     const cmd = subCommand
         .option(
+            "--provider <provider>",
+            `Model provider to use (openai or gemini).`,
+            d.provider
+        )
+        .option(
             "-m, --model <model>",
-            `GPT Image model: gpt-image-1.5, gpt-image-1, or gpt-image-1-mini. Used with the Images edit API (up to 16 input images).`,
+            `Image edit model to use. Defaults to a provider-specific model.`,
             d.model
         )
         .option(

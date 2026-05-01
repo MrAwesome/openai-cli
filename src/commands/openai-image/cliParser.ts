@@ -16,8 +16,13 @@ export default function openaiImageCLIParser(
 
     const cmd = subCommand
         .option(
+            "--provider <provider>",
+            `Model provider to use (openai or gemini).`,
+            d.provider
+        )
+        .option(
             "-m, --model <model>",
-            `GPT Image model: gpt-image-1.5, gpt-image-1, or gpt-image-1-mini.`,
+            `Image model to use. Defaults to a provider-specific model.`,
             d.model
         )
         .option(
